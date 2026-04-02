@@ -1,0 +1,247 @@
+# Requirements: NotebookSocial
+
+**Defined:** 2026-04-02
+**Core Value:** Interactive + social — make computational knowledge shareable and remixable, with forking as a first-class social action.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Authentication
+
+- [ ] **AUTH-01**: User can sign up via Google OAuth
+- [ ] **AUTH-02**: User can sign up via Facebook OAuth
+- [ ] **AUTH-03**: User session persists across browser refresh
+- [ ] **AUTH-04**: Passive users can view notebooks without authentication
+- [ ] **AUTH-05**: Authentication is required only for creating, editing, liking, commenting, and forking
+
+### Notebook Creation
+
+- [ ] **NOTE-01**: User can create Python notebooks using WASM-powered editor (Pyodide)
+- [ ] **NOTE-02**: User can preview notebook compilation results locally before publishing
+- [ ] **NOTE-03**: User can upload datasets (CSV files) to support charts and data visualization
+- [ ] **NOTE-04**: User can compile notebooks in isolated online containers
+- [ ] **NOTE-05**: User can publish pre-rendered notebook outputs to social feed (if compilation succeeds and user approves)
+- [ ] **NOTE-06**: User can edit their own unpublished notebooks
+- [ ] **NOTE-07**: User can delete their own notebooks (unless forked by others)
+
+### Notebook Viewing
+
+- [ ] **VIEW-01**: User can view Instagram-style feed of published notebooks
+- [ ] **VIEW-02**: User can click notebook listing to see full pre-rendered notebook
+- [ ] **VIEW-03**: Notebook outputs (charts, images, videos) are served via CDN for performance
+- [ ] **VIEW-04**: Feed loads quickly with lazy loading for infinite scroll
+- [ ] **VIEW-05**: Notebook viewer displays pre-rendered outputs (not executing code in browser)
+
+### Forking
+
+- [ ] **FORK-01**: User can fork any notebook (published or draft)
+- [ ] **FORK-02**: Forked notebook is a copy that user can edit and publish separately
+- [ ] **FORK-03**: Forks appear in feed with equal weightage to original notebooks
+- [ ] **FORK-04**: Fork attribution chain is preserved (shows lineage from original to current)
+- [ ] **FORK-05**: User cannot delete notebooks that have been forked by others
+
+### Social Features
+
+- [ ] **SOC-01**: User can like notebooks
+- [ ] **SOC-02**: User can unlike notebooks
+- [ ] **SOC-03**: User can comment on notebooks
+- [ ] **SOC-04**: User can reply to comments (threaded comments)
+- [ ] **SOC-05**: User can share notebooks (copy link, share to social platforms)
+- [ ] **SOC-06**: User can view like and comment counts on notebook cards in feed
+
+### Discovery
+
+- [ ] **DISC-01**: Feed algorithm uses ML to show trending content
+- [ ] **DISC-02**: Feed algorithm treats main notebooks and forks with equal weightage
+- [ ] **DISC-03**: User can search notebooks by title, tags, and author
+- [ ] **DISC-04**: User can filter search results by notebook type (original vs fork)
+- [ ] **DISC-05**: Feed shows engagement metrics (views, likes, comments)
+
+### User Profiles
+
+- [ ] **PROF-01**: User profile displays username and avatar
+- [ ] **PROF-02**: User profile displays bio
+- [ ] **PROF-03**: User profile shows count of published notebooks
+- [ ] **PROF-04**: User profile shows count of likes received
+- [ ] **PROF-05**: User can edit their own profile
+- [ ] **PROF-06**: User profile lists user's published notebooks
+
+### Storage & CDN
+
+- [ ] **STOR-01**: Datasets (CSV files) are stored in MinIO
+- [ ] **STOR-02**: Dataset files have cryptographically secure URLs with expiration
+- [ ] **STOR-03**: Pre-rendered notebook outputs are stored in MinIO/S3
+- [ ] **STOR-04**: Pre-rendered outputs are served via CloudFront CDN
+- [ ] **STOR-05**: CDN cache is invalidated when notebook is updated or deleted
+- [ ] **STOR-06**: Static assets (images, videos) are optimized for delivery
+
+### Infrastructure
+
+- [ ] **INFRA-01**: Frontend and backend are in separate folders (API-first architecture)
+- [ ] **INFRA-02**: Application runs in Docker Compose locally
+- [ ] **INFRA-03**: Application is deployable to AWS
+- [ ] **INFRA-04**: PostgreSQL stores relational data (users, notebooks, social graph)
+- [ ] **INFRA-05**: Redis handles caching and job queues
+- [ ] **INFRA-06**: Celery manages async notebook compilation tasks
+- [ ] **INFRA-07**: Containers have strict resource limits (CPU, memory, timeout)
+
+### Testing
+
+- [ ] **TEST-01**: Backend has unit tests for all API endpoints
+- [ ] **TEST-02**: Frontend has component tests for UI components
+- [ ] **TEST-03**: Integration tests cover key user flows (signup, create, publish, view)
+- [ ] **TEST-04**: E2E tests cover critical paths (end-to-end notebook creation to viewing)
+- [ ] **TEST-05**: Test suite runs automatically on CI/CD
+
+### Security
+
+- [ ] **SEC-01**: Notebook execution containers are isolated (no privileged mode, seccomp profiles)
+- [ ] **SEC-02**: Container execution has timeout limits
+- [ ] **SEC-03**: Dataset access is restricted to notebook owner and viewers
+- [ ] **SEC-04**: API endpoints have rate limiting
+- [ ] **SEC-05**: User inputs are validated and sanitized
+- [ ] **SEC-06**: OAuth tokens are securely stored and managed
+- [ ] **SEC-07**: Sensitive data is encrypted at rest
+
+### Performance
+
+- [ ] **PERF-01**: Feed loads initial 10 notebooks in under 2 seconds
+- [ ] **PERF-02**: Notebook viewer loads in under 3 seconds (first paint)
+- [ ] **PERF-03**: WASM editor initializes in under 5 seconds
+- [ ] **PERF-04**: Images are lazy-loaded and optimized
+- [ ] **PERF-05**: Database queries are indexed for common operations
+- [ ] **PERF-06**: Redis caching reduces database load for feed and trending
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Advanced Social
+
+- **ASOC-01**: User receives notifications for likes, comments, and new forks on their notebooks
+- **ASOC-02**: User can follow other users
+- **ASOC-03**: User can view activity feed of followed users
+- **ASOC-04**: User can mention other users in comments
+
+### Advanced Discovery
+
+- **ADIS-01**: User can save notebooks to collections
+- **ADIS-02**: User can filter feed by tags or topics
+- **ADIS-03**: Recommendation engine suggests notebooks based on viewing history
+- **ADIS-04**: User can browse trending notebooks by time period (day, week, month)
+
+### Advanced Execution
+
+- **AEXEC-01**: User can schedule periodic notebook execution
+- **AEXEC-02**: User can access external APIs in notebooks
+- **AEXEC-03**: User can install custom Python packages in containers
+
+### Analytics
+
+- **ANAL-01**: User can view detailed analytics on their notebooks (views, engagement over time)
+- **ANAL-02**: Admin can view platform-wide analytics
+- **ANAL-03**: User can export their notebook data
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Real-time collaborative editing | Complexity explosion (OT/CRDT), forking is the collaboration model |
+| Direct notebook execution in browser viewers | Limited WASM packages, performance issues - pre-rendered outputs are safer and faster |
+| Video upload/direct embedding | Content moderation nightmare, different use case - only video outputs from notebook execution |
+| Advanced analytics dashboard | Nice-to-have, not v1 - basic metrics only |
+| Monetization features | Premature optimization, distracts from core value |
+| Multiple language support (beyond Python) | Fragmentation, complexity - Python-only for v1 |
+| Native mobile app | Resource-intensive, web-first is viable with responsive design |
+| Code search across all notebook contents | Privacy concerns, compute-intensive - search metadata, tags, titles, descriptions only |
+| Real-time updates (live feed) | Not required for v1, polling or manual refresh is sufficient |
+| Public API for third-party integrations | Not in scope for v1, API-first architecture enables future addition |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Pending |
+| NOTE-01 | Phase 2 | Pending |
+| NOTE-02 | Phase 2 | Pending |
+| NOTE-03 | Phase 4 | Pending |
+| NOTE-04 | Phase 3 | Pending |
+| NOTE-05 | Phase 3 | Pending |
+| NOTE-06 | Phase 2 | Pending |
+| NOTE-07 | Phase 2 | Pending |
+| VIEW-01 | Phase 2 | Pending |
+| VIEW-02 | Phase 2 | Pending |
+| VIEW-03 | Phase 3 | Pending |
+| VIEW-04 | Phase 2 | Pending |
+| VIEW-05 | Phase 2 | Pending |
+| FORK-01 | Phase 4 | Pending |
+| FORK-02 | Phase 4 | Pending |
+| FORK-03 | Phase 4 | Pending |
+| FORK-04 | Phase 4 | Pending |
+| FORK-05 | Phase 4 | Pending |
+| SOC-01 | Phase 2 | Pending |
+| SOC-02 | Phase 2 | Pending |
+| SOC-03 | Phase 2 | Pending |
+| SOC-04 | Phase 2 | Pending |
+| SOC-05 | Phase 2 | Pending |
+| SOC-06 | Phase 2 | Pending |
+| DISC-01 | Phase 4 | Pending |
+| DISC-02 | Phase 4 | Pending |
+| DISC-03 | Phase 4 | Pending |
+| DISC-04 | Phase 4 | Pending |
+| DISC-05 | Phase 4 | Pending |
+| PROF-01 | Phase 1 | Pending |
+| PROF-02 | Phase 1 | Pending |
+| PROF-03 | Phase 1 | Pending |
+| PROF-04 | Phase 1 | Pending |
+| PROF-05 | Phase 1 | Pending |
+| PROF-06 | Phase 1 | Pending |
+| STOR-01 | Phase 3 | Pending |
+| STOR-02 | Phase 3 | Pending |
+| STOR-03 | Phase 3 | Pending |
+| STOR-04 | Phase 3 | Pending |
+| STOR-05 | Phase 3 | Pending |
+| STOR-06 | Phase 3 | Pending |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-03 | Phase 6 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| INFRA-05 | Phase 1 | Pending |
+| INFRA-06 | Phase 3 | Pending |
+| INFRA-07 | Phase 3 | Pending |
+| TEST-01 | Phase 5 | Pending |
+| TEST-02 | Phase 5 | Pending |
+| TEST-03 | Phase 5 | Pending |
+| TEST-04 | Phase 5 | Pending |
+| TEST-05 | Phase 5 | Pending |
+| SEC-01 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Pending |
+| SEC-03 | Phase 3 | Pending |
+| SEC-04 | Phase 1 | Pending |
+| SEC-05 | Phase 1 | Pending |
+| SEC-06 | Phase 1 | Pending |
+| SEC-07 | Phase 3 | Pending |
+| PERF-01 | Phase 3 | Pending |
+| PERF-02 | Phase 3 | Pending |
+| PERF-03 | Phase 2 | Pending |
+| PERF-04 | Phase 3 | Pending |
+| PERF-05 | Phase 1 | Pending |
+| PERF-06 | Phase 4 | Pending |
+
+**Coverage:**
+- v1 requirements: 64 total
+- Mapped to phases: 64
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2026-04-02*
+*Last updated: 2026-04-02 after initial definition*
