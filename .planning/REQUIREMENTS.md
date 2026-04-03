@@ -12,7 +12,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **AUTH-01**: User can sign up via Google OAuth
 - [x] **AUTH-02**: User can sign up via Facebook OAuth
 - [x] **AUTH-03**: User session persists across browser refresh
-- [ ] **AUTH-04**: Passive users can view notebooks without authentication
+- [x] **AUTH-04**: Passive users can view notebooks without authentication
 - [x] **AUTH-05**: Authentication is required only for creating, editing, liking, commenting, and forking
 
 ### Notebook Creation
@@ -64,7 +64,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PROF-02**: User profile displays bio
 - [x] **PROF-03**: User profile shows count of published notebooks
 - [x] **PROF-04**: User profile shows count of likes received
-- [ ] **PROF-05**: User can edit their own profile
+- [x] **PROF-05**: User can edit their own profile
 - [x] **PROF-06**: User profile lists user's published notebooks
 
 ### Storage & CDN
@@ -169,7 +169,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-01 | Phase 1 | Complete |
 | AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 1 | Complete |
-| AUTH-04 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Complete |
 | NOTE-01 | Phase 2 | Pending |
 | NOTE-02 | Phase 2 | Pending |
@@ -203,7 +203,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROF-02 | Phase 1 | Complete |
 | PROF-03 | Phase 1 | Complete |
 | PROF-04 | Phase 1 | Complete |
-| PROF-05 | Phase 1 | Pending |
+| PROF-05 | Phase 1 | Complete |
 | PROF-06 | Phase 1 | Complete |
 | STOR-01 | Phase 3 | Pending |
 | STOR-02 | Phase 3 | Pending |
