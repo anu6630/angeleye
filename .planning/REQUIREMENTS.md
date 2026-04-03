@@ -21,7 +21,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **NOTE-02**: User can preview notebook compilation results locally before publishing
 - [x] **NOTE-03**: User can upload datasets (CSV files) to support charts and data visualization
 - [x] **NOTE-04**: User can compile notebooks in isolated online containers
-- [ ] **NOTE-05**: User can publish pre-rendered notebook outputs to social feed (if compilation succeeds and user approves)
+- [x] **NOTE-05**: User can publish pre-rendered notebook outputs to social feed (if compilation succeeds and user approves)
 - [x] **NOTE-06**: User can edit their own unpublished notebooks
 - [x] **NOTE-07**: User can delete their own notebooks (unless forked by others)
 
@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **VIEW-01**: User can view Instagram-style feed of published notebooks
 - [x] **VIEW-02**: User can click notebook listing to see full pre-rendered notebook
-- [ ] **VIEW-03**: Notebook outputs (charts, images, videos) are served via CDN for performance
+- [x] **VIEW-03**: Notebook outputs (charts, images, videos) are served via CDN for performance
 - [x] **VIEW-04**: Feed loads quickly with lazy loading for infinite scroll
 - [ ] **VIEW-05**: Notebook viewer displays pre-rendered outputs (not executing code in browser)
 
@@ -72,8 +72,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **STOR-01**: Datasets (CSV files) are stored in MinIO
 - [x] **STOR-02**: Dataset files have cryptographically secure URLs with expiration
 - [x] **STOR-03**: Pre-rendered notebook outputs are stored in MinIO/S3
-- [ ] **STOR-04**: Pre-rendered outputs are served via CloudFront CDN
-- [ ] **STOR-05**: CDN cache is invalidated when notebook is updated or deleted
+- [x] **STOR-04**: Pre-rendered outputs are served via CloudFront CDN
+- [x] **STOR-05**: CDN cache is invalidated when notebook is updated or deleted
 - [ ] **STOR-06**: Static assets (images, videos) are optimized for delivery
 
 ### Infrastructure
@@ -106,8 +106,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Performance
 
-- [ ] **PERF-01**: Feed loads initial 10 notebooks in under 2 seconds
-- [ ] **PERF-02**: Notebook viewer loads in under 3 seconds (first paint)
+- [x] **PERF-01**: Feed loads initial 10 notebooks in under 2 seconds
+- [x] **PERF-02**: Notebook viewer loads in under 3 seconds (first paint)
 - [x] **PERF-03**: WASM editor initializes in under 5 seconds
 - [ ] **PERF-04**: Images are lazy-loaded and optimized
 - [x] **PERF-05**: Database queries are indexed for common operations
@@ -175,12 +175,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTE-02 | Phase 2 | Complete |
 | NOTE-03 | Phase 3 | Complete |
 | NOTE-04 | Phase 3 | Complete |
-| NOTE-05 | Phase 3 | Pending |
+| NOTE-05 | Phase 3 | Complete |
 | NOTE-06 | Phase 2 | Complete |
 | NOTE-07 | Phase 2 | Complete |
 | VIEW-01 | Phase 2 | Complete |
 | VIEW-02 | Phase 2 | Complete |
-| VIEW-03 | Phase 3 | Pending |
+| VIEW-03 | Phase 3 | Complete |
 | VIEW-04 | Phase 2 | Complete |
 | VIEW-05 | Phase 2 | Pending |
 | FORK-01 | Phase 4 | Pending |
@@ -208,8 +208,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STOR-01 | Phase 3 | Complete |
 | STOR-02 | Phase 3 | Complete |
 | STOR-03 | Phase 3 | Complete |
-| STOR-04 | Phase 3 | Pending |
-| STOR-05 | Phase 3 | Pending |
+| STOR-04 | Phase 3 | Complete |
+| STOR-05 | Phase 3 | Complete |
 | STOR-06 | Phase 3 | Pending |
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
@@ -230,8 +230,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-05 | Phase 1 | Pending |
 | SEC-06 | Phase 1 | Pending |
 | SEC-07 | Phase 3 | Complete |
-| PERF-01 | Phase 3 | Pending |
-| PERF-02 | Phase 3 | Pending |
+| PERF-01 | Phase 3 | Complete |
+| PERF-02 | Phase 3 | Complete |
 | PERF-03 | Phase 2 | Complete |
 | PERF-04 | Phase 3 | Pending |
 | PERF-05 | Phase 1 | Complete |
