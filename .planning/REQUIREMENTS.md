@@ -47,7 +47,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SOC-02**: User can unlike notebooks
 - [x] **SOC-03**: User can comment on notebooks
 - [x] **SOC-04**: User can reply to comments (threaded comments)
-- [ ] **SOC-05**: User can share notebooks (copy link, share to social platforms)
+- [x] **SOC-05**: User can share notebooks (copy link, share to social platforms)
 - [x] **SOC-06**: User can view like and comment counts on notebook cards in feed
 
 ### Discovery
@@ -192,7 +192,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SOC-02 | Phase 2 | Complete |
 | SOC-03 | Phase 2 | Complete |
 | SOC-04 | Phase 2 | Complete |
-| SOC-05 | Phase 2 | Pending |
+| SOC-05 | Phase 2 | Complete |
 | SOC-06 | Phase 2 | Complete |
 | DISC-01 | Phase 4 | Pending |
 | DISC-02 | Phase 4 | Pending |

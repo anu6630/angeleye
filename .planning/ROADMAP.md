@@ -66,7 +66,7 @@
 - [x] 02-04-PLAN.md — Notebook editor with Pyodide and Monaco Editor (NOTE-01, NOTE-02, PERF-03)
 - [x] 02-05-PLAN.md — Instagram-style feed with infinite scroll (VIEW-01, VIEW-04)
 - [x] 02-06-PLAN.md — Notebook viewer (read-only) and My Notebooks page (VIEW-02, VIEW-05, NOTE-06, NOTE-07)
-- [ ] 02-07-PLAN.md — Social interaction components (like, comment, share) with optimistic updates (SOC-01, SOC-02, SOC-03, SOC-04, SOC-05, SOC-06)
+- [x] 02-07-PLAN.md — Social interaction components (like, comment, share) with optimistic updates (SOC-01, SOC-02, SOC-03, SOC-04, SOC-05, SOC-06)
 - [ ] 02-08-PLAN.md — Missing UI components, integration, and import fixes (NOTE-01, VIEW-01, VIEW-02, SOC-05)
 
 **UI hint**: yes
