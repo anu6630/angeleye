@@ -3,10 +3,18 @@ from typing import Optional, Union, Any
 from jose import JWTError, jwt
 from fastapi import Request, HTTPException, status
 from cryptography.fernet import Fernet
+import base64
+import hashlib
 from app.core.config import settings
 
 # Fernet for token encryption (SEC-06)
-cipher_suite = Fernet(settings.ENCRYPTION_KEY.encode()[:32].ljust(32, b'=').decode())
+# Generate a proper Fernet key from the encryption key
+def _get_fernet_key(key: str) -> bytes:
+    """Convert a string key to a Fernet-compatible key"""
+    # Use SHA-256 to get 32 bytes, then base64 encode for Fernet
+    return base64.urlsafe_b64encode(hashlib.sha256(key.encode()).digest())
+
+cipher_suite = Fernet(_get_fernet_key(settings.ENCRYPTION_KEY))
 
 
 def create_access_token(subject: Union[str, Any], expires_delta: Optional[timedelta] = None) -> str:
