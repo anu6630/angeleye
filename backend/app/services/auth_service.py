@@ -4,6 +4,7 @@ from app.models.user import User
 from app.models.profile import Profile
 from app.core.security import encrypt_token, decrypt_token
 from app.schemas.user import UserCreate
+from app.core.cache import cache
 from datetime import datetime
 
 class AuthService:
@@ -11,6 +12,21 @@ class AuthService:
 
     def __init__(self, db: Session):
         self.db = db
+
+    def cache_user_session(self, user_id: int, session_data: dict, ttl: int = 1800) -> bool:
+        """Cache user session data in Redis (INFRA-05, AUTH-03)"""
+        cache_key = f"session:{user_id}"
+        return cache.set(cache_key, session_data, ttl)
+
+    def get_user_session(self, user_id: int) -> Optional[dict]:
+        """Get cached user session data from Redis (INFRA-05)"""
+        cache_key = f"session:{user_id}"
+        return cache.get(cache_key)
+
+    def clear_user_session(self, user_id: int) -> bool:
+        """Clear user session from Redis (INFRA-05, AUTH-03)"""
+        cache_key = f"session:{user_id}"
+        return cache.delete(cache_key)
 
     def get_user_by_oauth_id(self, provider: str, oauth_id: str) -> Optional[User]:
         """Get user by OAuth provider ID"""

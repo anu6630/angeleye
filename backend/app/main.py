@@ -13,6 +13,7 @@ from app.core.exceptions import APIError
 from app.api.v1.auth import router as auth_router
 from app.api.v1.profiles import router as profiles_router
 from app.core.config import settings
+from app.core.cache import cache
 
 # Create FastAPI app
 app = FastAPI(
@@ -66,8 +67,17 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for monitoring"""
-    return {"status": "healthy", "version": "1.0.0"}
+    """Health check endpoint for monitoring (INFRA-05)"""
+    redis_status = "connected" if cache.ping() else "disconnected"
+
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "redis": redis_status,
+        "services": {
+            "redis": redis_status
+        }
+    }
 
 # Root endpoint
 @app.get("/")
