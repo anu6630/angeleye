@@ -22,11 +22,7 @@ class CommentResponse(BaseModel):
     avatar_url: Optional[str] = None
     replies: Optional[List['CommentResponse']] = None
 
-    class Config:
-        from_attributes = True
-
-    # Enable forward reference for nested replies
-    model_config = {"populate_by_name": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 # Update forward references for nested replies
