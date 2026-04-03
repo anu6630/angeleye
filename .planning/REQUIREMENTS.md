@@ -69,9 +69,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Storage & CDN
 
-- [ ] **STOR-01**: Datasets (CSV files) are stored in MinIO
+- [x] **STOR-01**: Datasets (CSV files) are stored in MinIO
 - [ ] **STOR-02**: Dataset files have cryptographically secure URLs with expiration
-- [ ] **STOR-03**: Pre-rendered notebook outputs are stored in MinIO/S3
+- [x] **STOR-03**: Pre-rendered notebook outputs are stored in MinIO/S3
 - [ ] **STOR-04**: Pre-rendered outputs are served via CloudFront CDN
 - [ ] **STOR-05**: CDN cache is invalidated when notebook is updated or deleted
 - [ ] **STOR-06**: Static assets (images, videos) are optimized for delivery
@@ -102,7 +102,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SEC-04**: API endpoints have rate limiting
 - [ ] **SEC-05**: User inputs are validated and sanitized
 - [ ] **SEC-06**: OAuth tokens are securely stored and managed
-- [ ] **SEC-07**: Sensitive data is encrypted at rest
+- [x] **SEC-07**: Sensitive data is encrypted at rest
 
 ### Performance
 
@@ -205,9 +205,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROF-04 | Phase 1 | Complete |
 | PROF-05 | Phase 1 | Complete |
 | PROF-06 | Phase 1 | Complete |
-| STOR-01 | Phase 3 | Pending |
+| STOR-01 | Phase 3 | Complete |
 | STOR-02 | Phase 3 | Pending |
-| STOR-03 | Phase 3 | Pending |
+| STOR-03 | Phase 3 | Complete |
 | STOR-04 | Phase 3 | Pending |
 | STOR-05 | Phase 3 | Pending |
 | STOR-06 | Phase 3 | Pending |
@@ -229,7 +229,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-04 | Phase 1 | Pending |
 | SEC-05 | Phase 1 | Pending |
 | SEC-06 | Phase 1 | Pending |
-| SEC-07 | Phase 3 | Pending |
+| SEC-07 | Phase 3 | Complete |
 | PERF-01 | Phase 3 | Pending |
 | PERF-02 | Phase 3 | Pending |
 | PERF-03 | Phase 2 | Complete |
