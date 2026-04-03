@@ -15,6 +15,7 @@ from app.api.v1.profiles import router as profiles_router
 from app.api.v1.notebooks import router as notebooks_router
 from app.api.v1.likes import router as likes_router
 from app.api.v1.comments import router as comments_router
+from app.api.v1.datasets import datasets_router
 from app.core.config import settings
 from app.core.cache import cache
 
@@ -44,6 +45,7 @@ app.include_router(profiles_router, prefix="/api/v1/profiles", tags=["profiles"]
 app.include_router(notebooks_router, prefix="/api/v1", tags=["notebooks"])
 app.include_router(likes_router, prefix="/api/v1", tags=["likes"])
 app.include_router(comments_router, prefix="/api/v1", tags=["comments"])
+app.include_router(datasets_router, prefix="/api/v1")
 
 # Global exception handler for custom API errors (D-23, D-24, D-25)
 @app.exception_handler(APIError)
