@@ -37,6 +37,25 @@ class Settings(BaseSettings):
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
 
+    # Storage (STOR-01: Datasets stored in MinIO, STOR-03: Outputs stored in MinIO/S3)
+    MINIO_ENDPOINT: str = "http://localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    DATASETS_BUCKET: str = "datasets"
+    NOTEBOOKS_BUCKET: str = "notebooks"
+
+    # AWS S3 (production)
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_REGION: str = "us-east-1"
+
+    # CDN (STOR-04: Pre-rendered outputs served via CloudFront)
+    CLOUDFRONT_DISTRIBUTION_ID: str = ""
+    CLOUDFRONT_DOMAIN: str = ""
+
+    # File upload limits (STOR-01: Max 100MB for datasets)
+    MAX_DATASET_SIZE_MB: int = 100
+
     class Config:
         env_file = ".env"
         case_sensitive = True
