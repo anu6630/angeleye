@@ -83,7 +83,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INFRA-03**: Application is deployable to AWS
 - [x] **INFRA-04**: PostgreSQL stores relational data (users, notebooks, social graph)
 - [ ] **INFRA-05**: Redis handles caching and job queues
-- [ ] **INFRA-06**: Celery manages async notebook compilation tasks
+- [x] **INFRA-06**: Celery manages async notebook compilation tasks
 - [ ] **INFRA-07**: Containers have strict resource limits (CPU, memory, timeout)
 
 ### Testing
@@ -97,7 +97,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Security
 
 - [ ] **SEC-01**: Notebook execution containers are isolated (no privileged mode, seccomp profiles)
-- [ ] **SEC-02**: Container execution has timeout limits
+- [x] **SEC-02**: Container execution has timeout limits
 - [ ] **SEC-03**: Dataset access is restricted to notebook owner and viewers
 - [ ] **SEC-04**: API endpoints have rate limiting
 - [ ] **SEC-05**: User inputs are validated and sanitized
@@ -216,7 +216,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-03 | Phase 6 | Pending |
 | INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Pending |
-| INFRA-06 | Phase 3 | Pending |
+| INFRA-06 | Phase 3 | Complete |
 | INFRA-07 | Phase 3 | Pending |
 | TEST-01 | Phase 5 | Pending |
 | TEST-02 | Phase 5 | Pending |
@@ -224,7 +224,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-04 | Phase 5 | Pending |
 | TEST-05 | Phase 5 | Pending |
 | SEC-01 | Phase 3 | Pending |
-| SEC-02 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Complete |
 | SEC-03 | Phase 3 | Pending |
 | SEC-04 | Phase 1 | Pending |
 | SEC-05 | Phase 1 | Pending |
