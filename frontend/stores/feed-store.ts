@@ -44,7 +44,7 @@ export const useFeedStore = create<FeedState>()((set, get) => ({
 
     set({ isLoading: true });
     try {
-      const response = await apiClient.getFeed(state.cursor);
+      const response = await apiClient.getFeed(state.cursor || undefined);
       set((prevState) => ({
         notebooks: [...prevState.notebooks, ...response.items],
         cursor: response.next_cursor,
@@ -56,7 +56,7 @@ export const useFeedStore = create<FeedState>()((set, get) => ({
     }
   },
 
-  prependNotebook: (notebook) =>
+  prependNotebook: (notebook: NotebookCard) =>
     set((state) => ({
       notebooks: [notebook, ...state.notebooks],
     })),

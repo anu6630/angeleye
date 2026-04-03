@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Save, FileText, Eye, Loader2 } from 'lucide-react';
-import { useNotebookStore } from '@/stores';
+import { useNotebookStore } from '@/stores/notebook-store';
 import { NotebookCell } from './NotebookCell';
 
 interface NotebookEditorProps {
@@ -114,7 +114,7 @@ export function NotebookEditor({ notebookId }: NotebookEditorProps) {
             </Button>
           </div>
         ) : (
-          cells.map((cell, index) => (
+          cells.map((cell: any, index: number) => (
             <NotebookCell
               key={cell.id}
               id={cell.id}

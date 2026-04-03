@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FeedCard } from './FeedCard';
 import { FeedSkeleton } from './FeedSkeleton';
-import { useFeedStore } from '@/stores';
+import { useFeedStore } from '@/stores/feed-store';
 
 export function FeedList() {
   const {
@@ -89,7 +89,7 @@ export function FeedList() {
 
       {/* Feed grid - Instagram style (3 columns on lg, 2 on md, 1 on sm) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {notebooks.map((notebook) => (
+        {notebooks.map((notebook: any) => (
           <FeedCard key={notebook.id} notebook={notebook} />
         ))}
       </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Play, Trash2, Plus } from 'lucide-react';
-import { useNotebookStore } from '@/stores';
+import { useNotebookStore } from '@/stores/notebook-store';
 import { NotebookOutput } from './NotebookOutput';
 
 interface NotebookCellProps {
