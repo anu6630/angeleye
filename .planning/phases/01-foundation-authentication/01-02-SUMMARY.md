@@ -64,8 +64,8 @@ decisions:
     rationale: "When a user is deleted, their profile should be automatically deleted. Using cascade="all, delete-orphan" ensures data consistency."
     outcome: "ForeignKey with ondelete='CASCADE' and cascade on relationship"
 metrics:
-  duration_seconds: 45
-  completed_date: "2026-04-03T04:00:50Z"
+  duration_seconds: 392
+  completed_date: "2026-04-03T04:06:37Z"
   files_created: 12
   lines_added: 357
 ---
