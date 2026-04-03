@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores/auth-store';
 import { useRouter } from 'next/navigation';
 
 export default function NotebooksLayout({

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { loadPyodideInstance } from '@/lib/pyodide-loader';
 import { NotebookEditor } from '@/components/notebook/NotebookEditor';
-import { useNotebookStore } from '@/stores';
+import { useNotebookStore } from '@/stores/notebook-store';
 
 export default function EditNotebookPage() {
   const router = useRouter();

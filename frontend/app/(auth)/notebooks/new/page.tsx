@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { loadPyodideInstance } from '@/lib/pyodide-loader';
 import { NotebookEditor } from '@/components/notebook/NotebookEditor';
-import { useNotebookStore } from '@/stores';
+import { useNotebookStore } from '@/stores/notebook-store';
 
 export default function NewNotebookPage() {
   const [isLoading, setIsLoading] = useState(true);
