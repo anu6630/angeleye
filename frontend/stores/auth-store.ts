@@ -1,76 +1,109 @@
-/**
- * Auth Store - Zustand state management for authentication
- *
- * Manages user authentication state and session persistence
- */
-
 import { create } from 'zustand';
-import { User } from '@/lib/api-client';
-import { apiClient } from '@/lib/api-client';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { apiClient, User } from '@/lib/api-client';
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  error: string | null;
-  setUser: (user: User | null) => void;
+  pendingUserId: string | null;
+  loginWithGoogle: () => void;
+  loginWithFacebook: () => void;
+  completeProfile: (username: string, avatarUrl?: string, bio?: string) => Promise<void>;
   fetchUser: () => Promise<void>;
   logout: () => Promise<void>;
-  clearError: () => void;
+  setPendingUserId: (userId: string | null) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: false,
-  error: null,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      pendingUserId: null,
 
-  setUser: (user: User | null) => {
-    set({
-      user,
-      isAuthenticated: !!user,
-    });
-  },
+      loginWithGoogle: () => {
+        apiClient.loginWithGoogle();
+      },
 
-  fetchUser: async () => {
-    const { isAuthenticated } = get();
-    if (isAuthenticated) return; // Already have user data
+      loginWithFacebook: () => {
+        apiClient.loginWithFacebook();
+      },
 
-    set({ isLoading: true, error: null });
+      completeProfile: async (username, avatarUrl, bio) => {
+        set({ isLoading: true });
+        try {
+          const response = await apiClient.completeProfile({
+            username,
+            avatar_url: avatarUrl,
+            bio,
+          });
+          set({
+            user: {
+              id: response.user_id,
+              email: response.email,
+              username: response.username,
+              is_active: true,
+              is_verified: true,
+              avatar_url: response.avatar_url,
+              bio: response.bio,
+              created_at: new Date().toISOString(),
+            },
+            isAuthenticated: true,
+            pendingUserId: null,
+            isLoading: false,
+          });
+        } catch (error) {
+          set({ isLoading: false });
+          throw error;
+        }
+      },
 
-    try {
-      const user = await apiClient.getCurrentUser();
-      set({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      });
-    } catch (error) {
-      set({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch user',
-      });
+      fetchUser: async () => {
+        set({ isLoading: true });
+        try {
+          const user = await apiClient.getCurrentUser();
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          // User not authenticated, clear state
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      },
+
+      logout: async () => {
+        try {
+          await apiClient.logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        } finally {
+          set({
+            user: null,
+            isAuthenticated: false,
+            pendingUserId: null,
+          });
+        }
+      },
+
+      setPendingUserId: (userId) => {
+        set({ pendingUserId: userId });
+      },
+    }),
+    {
+      name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
+      }),
     }
-  },
-
-  logout: async () => {
-    try {
-      await apiClient.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      set({
-        user: null,
-        isAuthenticated: false,
-        error: null,
-      });
-    }
-  },
-
-  clearError: () => {
-    set({ error: null });
-  },
-}));
+  )
+);

@@ -1,55 +1,35 @@
-/**
- * API Client for NotebookSocial
- *
- * Communicates with the FastAPI backend at /api/v1
- */
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-// User types based on backend schemas
 export interface User {
   id: number;
   email: string;
   username: string;
-  avatar_url?: string | null;
-  bio?: string | null;
   is_active: boolean;
   is_verified: boolean;
+  bio?: string | null;
+  avatar_url?: string | null;
   created_at: string;
-  updated_at?: string;
 }
 
-export interface ProfileStats {
-  published_notebook_count: number;
-  likes_received_count: number;
-}
-
-export interface PublicProfile extends ProfileStats {
+export interface AuthResponse {
+  user_id: number;
   username: string;
+  email: string;
   avatar_url?: string | null;
   bio?: string | null;
-  created_at: string;
 }
 
-export interface ProfileUpdateRequest {
-  username?: string;
+export interface ProfileCompletionData {
+  username: string;
   avatar_url?: string;
   bio?: string;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  message?: string;
-}
-
-/**
- * API Client
- */
 class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
+  constructor() {
+    this.baseUrl = API_URL;
   }
 
   private async request<T>(
@@ -57,69 +37,68 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
     const response = await fetch(url, {
       ...options,
-      headers,
-      credentials: 'include', // Include cookies for httpOnly auth
+      credentials: 'include', // Important for httpOnly cookies
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || error.detail || `HTTP ${response.status}`);
+      throw new Error(error.error || error.message || 'Request failed');
     }
 
     return response.json();
   }
 
-  // Auth endpoints
-  async loginWithGoogle() {
-    window.location.href = `${this.baseUrl}/api/v1/auth/google`;
+  // Auth endpoints (calls backend from Plan 04)
+  async loginWithGoogle(): Promise<void> {
+    // OAuth flow initiates via redirect to backend endpoint
+    window.location.href = `${this.baseUrl}/auth/google`;
   }
 
-  async loginWithFacebook() {
-    window.location.href = `${this.baseUrl}/api/v1/auth/facebook`;
+  async loginWithFacebook(): Promise<void> {
+    // OAuth flow initiates via redirect to backend endpoint
+    window.location.href = `${this.baseUrl}/auth/facebook`;
   }
 
-  async logout(): Promise<AuthResponse> {
-    return this.request<AuthResponse>('/api/v1/auth/logout', {
+  async completeProfile(data: ProfileCompletionData): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/auth/complete-profile', {
       method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
   async getCurrentUser(): Promise<User> {
-    return this.request<User>('/api/v1/auth/me');
+    return this.request<User>('/auth/me');
+  }
+
+  async logout(): Promise<void> {
+    await this.request('/auth/logout', { method: 'POST' });
   }
 
   // Profile endpoints
   async getProfile(): Promise<User> {
-    return this.request<User>('/api/v1/profiles/me');
+    return this.request<User>('/profiles/me');
   }
 
-  async updateProfile(data: ProfileUpdateRequest): Promise<User> {
-    return this.request<User>('/api/v1/profiles/me', {
+  async updateProfile(data: Partial<ProfileCompletionData>): Promise<User> {
+    return this.request<User>('/profiles/me', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async getPublicProfile(username: string): Promise<PublicProfile> {
-    return this.request<PublicProfile>(`/api/v1/profiles/${username}`);
+  async getProfileStats(): Promise<{ published_notebook_count: number; likes_received_count: number }> {
+    return this.request('/profiles/stats');
   }
 
-  async getProfileStats(): Promise<ProfileStats> {
-    return this.request<ProfileStats>('/api/v1/profiles/stats');
-  }
-
-  async getMyNotebooks(page: number = 1, perPage: number = 20): Promise<{ notebooks: any[]; total: number; page: number; per_page: number }> {
-    return this.request<{ notebooks: any[]; total: number; page: number; per_page: number }>(
-      `/api/v1/profiles/notebooks?page=${page}&per_page=${perPage}`
-    );
+  async getPublicProfile(username: string): Promise<User> {
+    return this.request<User>(`/profiles/${username}`);
   }
 }
 
-export const apiClient = new ApiClient(API_BASE_URL);
+export const apiClient = new ApiClient();
