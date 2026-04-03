@@ -35,10 +35,10 @@
 
 - [x] 01-01-PLAN.md — Project scaffolding & Docker infrastructure (INFRA-01, INFRA-02)
 - [x] 01-02-PLAN.md — Database schema and migrations (INFRA-04, PERF-05, PROF-01, PROF-02, PROF-03, PROF-04, PROF-06)
-- [ ] 01-03-PLAN.md — Security infrastructure (SEC-04, SEC-05, SEC-06, AUTH-03)
+- [x] 01-03-PLAN.md — Security infrastructure (SEC-04, SEC-05, SEC-06, AUTH-03)
 - [ ] 01-04-PLAN.md — OAuth authentication endpoints (AUTH-01, AUTH-02, AUTH-03, AUTH-05)
 - [ ] 01-05-PLAN.md — Profile management endpoints (PROF-01, PROF-02, PROF-03, PROF-04, PROF-05, PROF-06, AUTH-04, AUTH-05)
-- [ ] 01-06-PLAN.md — Frontend foundation (INFRA-01)
+- [x] 01-06-PLAN.md — Frontend foundation (INFRA-01)
 - [ ] 01-07-PLAN.md — Authentication UI (AUTH-01, AUTH-02, AUTH-03, AUTH-05)
 - [ ] 01-08-PLAN.md — Profile UI (PROF-01, PROF-02, PROF-03, PROF-04, PROF-05, PROF-06, AUTH-04)
 - [ ] 01-09-PLAN.md — Redis caching and rate limiting (INFRA-05)
