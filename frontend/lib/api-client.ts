@@ -52,6 +52,11 @@ export interface NotebookResponse {
   like_count: number;
   comment_count: number;
   cells?: NotebookCell[];
+  user?: {
+    id: number;
+    username: string;
+    avatar_url?: string | null;
+  };
 }
 
 export interface NotebookCard {
