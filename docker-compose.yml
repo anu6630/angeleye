@@ -80,6 +80,36 @@ services:
       - /app/__pycache__
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: notebooksocial-celery-worker
+    environment:
+      - DATABASE_URL=postgresql://notebooksocial:notebooksocial_password@postgres:5432/notebooksocial
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock  # For container execution (Plan 03-03A)
+      - notebook_temp:/tmp/notebooks  # Shared temp volume for notebook files
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2 -Q compilation
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   frontend:
     build:
       context: ./frontend
@@ -103,3 +133,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  notebook_temp:
