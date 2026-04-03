@@ -4,5 +4,6 @@ from app.models.notebook import Notebook
 from app.models.notebook_cell import NotebookCell
 from app.models.like import Like
 from app.models.comment import Comment
+from app.models.dataset import Dataset
 
-__all__ = ["User", "Profile", "Notebook", "NotebookCell", "Like", "Comment"]
+__all__ = ["User", "Profile", "Notebook", "NotebookCell", "Like", "Comment", "Dataset"]
