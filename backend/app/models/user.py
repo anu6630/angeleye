@@ -21,6 +21,9 @@ class User(Base):
 
     # Relationships
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    notebooks = relationship("Notebook", back_populates="user", cascade="all, delete-orphan")
+    likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index('ix_users_email_lower', func.lower(email)),
