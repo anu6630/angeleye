@@ -20,7 +20,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **NOTE-01**: User can create Python notebooks using WASM-powered editor (Pyodide)
 - [x] **NOTE-02**: User can preview notebook compilation results locally before publishing
 - [ ] **NOTE-03**: User can upload datasets (CSV files) to support charts and data visualization
-- [ ] **NOTE-04**: User can compile notebooks in isolated online containers
+- [x] **NOTE-04**: User can compile notebooks in isolated online containers
 - [ ] **NOTE-05**: User can publish pre-rendered notebook outputs to social feed (if compilation succeeds and user approves)
 - [x] **NOTE-06**: User can edit their own unpublished notebooks
 - [x] **NOTE-07**: User can delete their own notebooks (unless forked by others)
@@ -84,7 +84,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **INFRA-04**: PostgreSQL stores relational data (users, notebooks, social graph)
 - [ ] **INFRA-05**: Redis handles caching and job queues
 - [x] **INFRA-06**: Celery manages async notebook compilation tasks
-- [ ] **INFRA-07**: Containers have strict resource limits (CPU, memory, timeout)
+- [x] **INFRA-07**: Containers have strict resource limits (CPU, memory, timeout)
 
 ### Testing
 
@@ -96,7 +96,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Security
 
-- [ ] **SEC-01**: Notebook execution containers are isolated (no privileged mode, seccomp profiles)
+- [x] **SEC-01**: Notebook execution containers are isolated (no privileged mode, seccomp profiles)
 - [x] **SEC-02**: Container execution has timeout limits
 - [ ] **SEC-03**: Dataset access is restricted to notebook owner and viewers
 - [ ] **SEC-04**: API endpoints have rate limiting
@@ -174,7 +174,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTE-01 | Phase 2 | Complete |
 | NOTE-02 | Phase 2 | Complete |
 | NOTE-03 | Phase 3 | Pending |
-| NOTE-04 | Phase 3 | Pending |
+| NOTE-04 | Phase 3 | Complete |
 | NOTE-05 | Phase 3 | Pending |
 | NOTE-06 | Phase 2 | Complete |
 | NOTE-07 | Phase 2 | Complete |
@@ -217,13 +217,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Pending |
 | INFRA-06 | Phase 3 | Complete |
-| INFRA-07 | Phase 3 | Pending |
+| INFRA-07 | Phase 3 | Complete |
 | TEST-01 | Phase 5 | Complete |
 | TEST-02 | Phase 5 | Complete |
 | TEST-03 | Phase 5 | Pending |
 | TEST-04 | Phase 5 | Pending |
 | TEST-05 | Phase 5 | Pending |
-| SEC-01 | Phase 3 | Pending |
+| SEC-01 | Phase 3 | Complete |
 | SEC-02 | Phase 3 | Complete |
 | SEC-03 | Phase 3 | Pending |
 | SEC-04 | Phase 1 | Pending |
