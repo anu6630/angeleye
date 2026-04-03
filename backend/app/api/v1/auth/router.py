@@ -197,7 +197,7 @@ async def auth_facebook_callback(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"OAuth failed: {str(e)}")
 
-@router.post('/complete-profile')
+@router.post('/complete-profile', response_model=ProfileCompletionResponse)
 async def complete_profile(
     request: Request,
     response: Response,
