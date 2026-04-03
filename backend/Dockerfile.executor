@@ -1,0 +1,54 @@
+# Notebook executor container image
+# This image runs in isolated containers to execute user notebooks
+# Built with security features: non-root user, minimal packages
+#
+# SEC-01: Notebook execution containers isolated
+# INFRA-07: Containers have strict resource limits
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Matplotlib backend for non-interactive plotting
+    MPLBACKEND=Agg \
+    # Limit NumPy/OMP threads to prevent CPU exhaustion
+    OMP_NUM_THREADS=2 \
+    MKL_NUM_THREADS=2 \
+    OPENBLAS_NUM_THREADS=2
+
+# Install system dependencies (minimal)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Required for matplotlib
+    libfreetype6-dev \
+    libpng-dev \
+    # Required for some pandas operations
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for notebook execution
+# These packages are commonly used in data science notebooks
+RUN pip install --no-cache-dir \
+    jupyter==1.1.1 \
+    nbconvert==7.17.0 \
+    pandas==3.0.2 \
+    numpy==2.4.4 \
+    matplotlib==3.10.8 \
+    seaborn==0.13.2 \
+    scipy==1.15.2 \
+    scikit-learn==1.8.0 \
+    plotly==5.24.1
+
+# Create non-root user for security (SEC-01)
+RUN useradd -m -u 1000 notebookuser && \
+    mkdir -p /workspace && \
+    chown -R notebookuser:notebookuser /workspace
+
+# Set working directory
+WORKDIR /workspace
+
+# Switch to non-root user
+USER notebookuser
+
+# Default command (will be overridden by celery task)
+CMD ["jupyter", "nbconvert", "--version"]
