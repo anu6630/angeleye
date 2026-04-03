@@ -10,6 +10,7 @@ from app.tasks.celery_app import celery_app
 from app.db.session import SessionLocal
 from app.models.notebook import Notebook
 from app.models.notebook_cell import NotebookCell
+from app.services.compilation_service import CompilationService
 from typing import Optional
 import logging
 
@@ -74,10 +75,9 @@ def compile_notebook_task(self, notebook_id: int, dataset_id: Optional[int] = No
 
     This task:
     1. Retrieves notebook from database
-    2. Writes notebook to temporary .ipynb file
-    3. Executes in Docker container (Plan 03-03B: ContainerExecutor)
-    4. Uploads output to S3/MinIO (Plan 03-04A: CDNService)
-    5. Updates notebook with compilation status
+    2. Executes in Docker container via ContainerExecutor
+    3. Uploads output to S3/MinIO
+    4. Returns CDN URL
 
     Args:
         notebook_id: ID of notebook to compile
@@ -88,6 +88,7 @@ def compile_notebook_task(self, notebook_id: int, dataset_id: Optional[int] = No
         - status: 'success' or 'failed'
         - notebook_id: ID of compiled notebook
         - output_url: CDN URL of compiled output (if success)
+        - output_key: S3 key of output (if success)
         - error: Error message (if failed)
 
     Raises:
@@ -96,37 +97,17 @@ def compile_notebook_task(self, notebook_id: int, dataset_id: Optional[int] = No
     try:
         logger.info(f"Starting compilation for notebook {notebook_id}")
 
-        # Get notebook data
-        notebook_data = get_notebook_with_cells(notebook_id, self.db)
-        if not notebook_data:
-            logger.error(f"Notebook {notebook_id} not found")
-            return {
-                'status': 'failed',
-                'notebook_id': notebook_id,
-                'error': 'Notebook not found'
-            }
+        # Create compilation service (ContainerExecutor initialized in service __init__)
+        service = CompilationService(self.db)
 
-        # STUB: Container execution will be implemented in Plan 03-03B
-        # For now, this is a placeholder that simulates compilation
-        logger.info(f"Compiling notebook '{notebook_data['title']}' with {len(notebook_data['cells'])} cells")
+        # Compile notebook (container execution + upload via service)
+        result = service.compile_notebook(
+            notebook_id=notebook_id,
+            dataset_id=dataset_id,
+            output_dir="/tmp/notebooks"
+        )
 
-        # TODO (Plan 03-03B):
-        # 1. Write .ipynb file to temp directory
-        # 2. Download dataset from S3 (if dataset_id provided)
-        # 3. Execute in Docker container via ContainerExecutor
-        # 4. Capture output HTML
-        # 5. Upload to S3/MinIO
-        # 6. Return CDN URL
-
-        # Placeholder: Simulate successful compilation
-        result = {
-            'status': 'success',
-            'notebook_id': notebook_id,
-            'output_url': f'/api/v1/notebooks/{notebook_id}/output',  # Placeholder
-            'message': 'Compilation completed (stub - container execution in Plan 03-03B)'
-        }
-
-        logger.info(f"Compilation completed for notebook {notebook_id}")
+        logger.info(f"Compilation completed for notebook {notebook_id}: {result['status']}")
         return result
 
     except Exception as exc:
