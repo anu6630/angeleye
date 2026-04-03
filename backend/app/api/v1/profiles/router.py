@@ -1,0 +1,144 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from typing import Optional
+
+from app.db.session import get_db
+from app.services.profile_service import ProfileService
+from app.api.v1.dependencies import require_auth, optional_auth, limiter
+from app.api.v1.profiles.schemas import (
+    ProfileUpdateRequest,
+    ProfileResponse,
+    PublicProfileResponse,
+    ProfileStatsResponse,
+    UserNotebooksResponse
+)
+from app.models.profile import Profile
+from app.models.user import User
+
+router = APIRouter()
+
+@router.get('/me', response_model=ProfileResponse)
+async def get_my_profile(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get current user's profile (PROF-01, PROF-02, D-08)"""
+    # Get authenticated user
+    user_id = await require_auth(request)
+
+    profile_service = ProfileService(db)
+    user = profile_service.get_user_with_profile(user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = profile_service.get_profile_by_user_id(user_id)
+
+    return ProfileResponse(
+        id=profile.id if profile else 0,
+        user_id=user.id,
+        username=user.username,
+        email=user.email,
+        bio=profile.bio if profile else None,
+        avatar_url=profile.avatar_url if profile else None,
+        created_at=profile.created_at if profile else user.created_at,
+        updated_at=profile.updated_at if profile else user.updated_at
+    )
+
+@router.put('/me', response_model=ProfileResponse)
+@limiter.limit("30/minute")  # Rate limit profile updates (SEC-04)
+async def update_my_profile(
+    request: Request,
+    profile_data: ProfileUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Update current user's profile (PROF-05, D-07, D-08)"""
+    # Get authenticated user (AUTH-05: authentication required for editing)
+    user_id = await require_auth(request)
+
+    profile_service = ProfileService(db)
+    user = profile_service.update_profile(user_id, profile_data)
+
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already taken or user not found"
+        )
+
+    profile = profile_service.get_profile_by_user_id(user_id)
+
+    return ProfileResponse(
+        id=profile.id if profile else 0,
+        user_id=user.id,
+        username=user.username,
+        email=user.email,
+        bio=profile.bio if profile else None,
+        avatar_url=profile.avatar_url if profile else None,
+        created_at=profile.created_at if profile else user.created_at,
+        updated_at=profile.updated_at if profile else user.updated_at
+    )
+
+@router.get('/stats', response_model=ProfileStatsResponse)
+async def get_my_profile_stats(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get current user's profile statistics (PROF-03, PROF-04)"""
+    # Get authenticated user
+    user_id = await require_auth(request)
+
+    profile_service = ProfileService(db)
+    stats = profile_service.get_profile_stats(user_id)
+
+    return ProfileStatsResponse(**stats)
+
+@router.get('/notebooks', response_model=UserNotebooksResponse)
+async def get_my_notebooks(
+    request: Request,
+    page: int = 1,
+    per_page: int = 20,
+    db: Session = Depends(get_db)
+):
+    """Get current user's published notebooks (PROF-06)"""
+    # Get authenticated user
+    user_id = await require_auth(request)
+
+    profile_service = ProfileService(db)
+
+    # Calculate offset
+    skip = (page - 1) * per_page
+
+    # Get notebooks (returns empty list in Phase 1, implemented in Phase 2)
+    notebooks = profile_service.list_user_notebooks(user_id, skip, per_page)
+
+    return UserNotebooksResponse(
+        notebooks=notebooks,
+        total=len(notebooks),  # Will be actual count in Phase 2
+        page=page,
+        per_page=per_page
+    )
+
+@router.get('/{username}', response_model=PublicProfileResponse)
+async def get_public_profile(
+    username: str,
+    db: Session = Depends(get_db)
+):
+    """Get public profile by username (AUTH-04, AUTH-05: passive viewing works without auth)"""
+    # This endpoint is public - no authentication required (AUTH-04, AUTH-05)
+    profile_service = ProfileService(db)
+    user = profile_service.get_user_by_username(username)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = profile_service.get_profile_by_user_id(user.id)
+    stats = profile_service.get_profile_stats(user.id)
+
+    return PublicProfileResponse(
+        username=user.username,
+        avatar_url=profile.avatar_url if profile else None,
+        bio=profile.bio if profile else None,
+        published_notebook_count=stats['published_notebook_count'],
+        likes_received_count=stats['likes_received_count'],
+        created_at=user.created_at
+    )
