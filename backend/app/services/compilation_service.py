@@ -5,13 +5,12 @@ NOTE-04: User can compile notebooks in isolated online containers
 INFRA-06: Celery manages async notebook compilation tasks
 """
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
 from typing import Optional
 import os
 from app.models.notebook import Notebook
-from app.core.config import settings
+from app.core.container import ContainerExecutor
 from app.services.storage_service import StorageService
-from app.services.cdn_service import CDNService
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,8 +32,8 @@ class CompilationService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.executor = ContainerExecutor()
         self.storage = StorageService()
-        self.cdn = CDNService()
 
     def compile_notebook(
         self,
@@ -58,6 +57,9 @@ class CompilationService:
             - output_key: S3 key of output (if success)
             - error: Error message (if failed)
         """
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+
         # Get notebook from database
         notebook = self.db.query(Notebook).filter(Notebook.id == notebook_id).first()
         if not notebook:
@@ -86,30 +88,33 @@ class CompilationService:
         if dataset_id:
             logger.info(f"Dataset {dataset_id} requested - TODO: download from S3")
 
-        # STUB: Container execution will be implemented when ContainerExecutor is available
-        # For now, we'll create a minimal HTML output
+        # Execute notebook in container
         try:
-            # Generate HTML output (stub implementation)
-            html_content = self._generate_stub_html(notebook_data)
-
-            # Upload output via CDN service
-            import time
-            version = str(int(time.time()))
-            output_key = self.cdn.upload_html(
-                html_content=html_content,
-                notebook_id=notebook_id,
-                version=version
+            success, result, error = self.executor.execute_notebook_to_file(
+                notebook_data=notebook_data,
+                output_dir=output_dir,
+                dataset_path=dataset_path,
+                timeout=300  # 5 minutes (SEC-02)
             )
 
-            # Generate URL for output
-            output_url = self.cdn.get_output_url(output_key)
+            # Cleanup dataset temp file if exists
+            if dataset_path and os.path.exists(dataset_path):
+                os.unlink(dataset_path)
 
-            # Update notebook with output metadata
-            notebook.output_s3_key = output_key
-            notebook.output_version = output_key.split('/')[-2]  # Extract version from key
-            notebook.output_url = output_url
-            notebook.compiled_at = func.now()
-            self.db.commit()
+            if not success:
+                return {
+                    'status': 'failed',
+                    'notebook_id': notebook_id,
+                    'error': error or 'Unknown execution error'
+                }
+
+            output_file = result  # result is the output file path on success
+
+            # Upload output to S3/MinIO
+            output_key = self._upload_output(output_file, notebook_id)
+
+            # Generate URL for output
+            output_url = self._generate_output_url(output_key)
 
             logger.info(f"Notebook {notebook_id} compiled successfully, output at {output_url}")
 
@@ -128,32 +133,64 @@ class CompilationService:
                 'error': str(e)
             }
 
-    def _generate_stub_html(self, notebook_data: dict) -> str:
+    def _upload_output(self, output_file: str, notebook_id: int) -> str:
         """
-        Generate stub HTML output for notebook.
+        Upload notebook output HTML to S3/MinIO.
 
-        This is a temporary stub until ContainerExecutor is implemented.
+        STOR-03: Pre-rendered notebook outputs stored in MinIO/S3
+        SEC-07: Server-side encryption enabled
+
+        Args:
+            output_file: Path to output HTML file
+            notebook_id: Notebook ID
+
+        Returns:
+            S3 key of uploaded output
         """
-        cells_html = ""
-        for cell in notebook_data['cells']:
-            if cell['cell_type'] == 'code':
-                cells_html += f'<div class="code-cell"><pre>{cell["content"]}</pre></div>\n'
-            else:
-                cells_html += f'<div class="markdown-cell"><p>{cell["content"]}</p></div>\n'
+        import time
+        timestamp = int(time.time())
+        key = f'notebooks/{notebook_id}/v{timestamp}/output.html'
 
-        return f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>{notebook_data['title']}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        .code-cell {{ background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; }}
-        .markdown-cell {{ margin: 10px 0; }}
-        pre {{ white-space: pre-wrap; }}
-    </style>
-</head>
-<body>
-    <h1>{notebook_data['title']}</h1>
-    {cells_html}
-</body>
-</html>"""
+        try:
+            self.storage.upload_file(
+                file_path=output_file,
+                bucket=settings.NOTEBOOKS_BUCKET,
+                key=key,
+                content_type='text/html'
+            )
+
+            # Cleanup local output file
+            if os.path.exists(output_file):
+                os.unlink(output_file)
+
+            return key
+
+        except Exception as e:
+            logger.error(f"Failed to upload output for notebook {notebook_id}: {e}")
+            raise
+
+    def _generate_output_url(self, output_key: str) -> str:
+        """
+        Generate URL for notebook output.
+
+        Production: CloudFront URL (cached, public)
+        Development: Presigned MinIO URL (1 hour expiry)
+
+        VIEW-03: Outputs served via CDN for performance
+
+        Args:
+            output_key: S3 key of output file
+
+        Returns:
+            URL to access output
+        """
+        # Production: CloudFront URL
+        if settings.CLOUDFRONT_DOMAIN:
+            return f"{settings.CLOUDFRONT_DOMAIN}/{output_key}"
+        # Development: presigned URL
+        else:
+            return self.storage.generate_presigned_url(
+                bucket=settings.NOTEBOOKS_BUCKET,
+                key=output_key,
+                expiration=3600  # 1 hour for dev
+            )
