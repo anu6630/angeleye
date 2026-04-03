@@ -86,7 +86,14 @@
 4. Notebook outputs (charts, images, videos) are served via CDN for fast load times
 5. Dataset access is restricted to notebook owner and viewers with cryptographically secure URLs
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+- [ ] 03-01-PLAN.md — Dataset upload and storage with MinIO/S3 integration (NOTE-03, STOR-01, STOR-02, SEC-03, SEC-07)
+- [ ] 03-02-PLAN.md — Celery task queue infrastructure for async compilation (INFRA-06, INFRA-07, SEC-02, NOTE-04)
+- [ ] 03-03-PLAN.md — Docker container execution with resource limits and security (NOTE-04, INFRA-06, INFRA-07, SEC-01, SEC-02)
+- [ ] 03-04-PLAN.md — CDN integration and publishing workflow (NOTE-05, VIEW-03, STOR-03, STOR-04, STOR-05, PERF-01, PERF-02)
+- [ ] 03-05-PLAN.md — Frontend integration for compilation and publishing (NOTE-03, NOTE-04, NOTE-05, PERF-01, PERF-02, PERF-04)
+- [ ] 03-06-PLAN.md — Output optimization and image lazy loading (STOR-06, PERF-02, PERF-04, VIEW-05)
 
 ### Phase 4: Forking & Social Discovery
 
@@ -146,8 +153,8 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Authentication | 9/9 | Complete | 2026-04-03 |
-| 2. Core Notebook Experience | 0/8 | Not started | - |
-| 3. Execution & Publishing | 0/0 | Not started | - |
+| 2. Core Notebook Experience | 8/8 | Complete | 2026-04-04 |
+| 3. Execution & Publishing | 0/6 | Planning | - |
 | 4. Forking & Social Discovery | 0/0 | Not started | - |
 | 5. Testing & Quality | 0/0 | Not started | - |
 | 6. Production Deployment | 0/0 | Not started | - |
@@ -188,4 +195,5 @@
 
 *Roadmap created: 2026-04-02*
 *Phase 1 completed: 2026-04-03*
-*Phase 2 planned: 2026-04-04*
+*Phase 2 completed: 2026-04-04*
+*Phase 3 planned: 2026-04-04*

@@ -4,20 +4,20 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 3
 status: planning
-last_updated: "2026-04-03T20:43:54.893Z"
+last_updated: "2026-04-04T22:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 17
+  total_plans: 23
   completed_plans: 17
-  percent: 100
+  percent: 74
 ---
 
 # Project State: NotebookSocial
 
 **Last Updated:** 2026-04-04
 **Current Phase:** 3
-**Current Focus:** Phase 02 — Core Notebook Experience
+**Current Focus:** Phase 03 — Execution & Publishing
 
 ## Project Reference
 
@@ -40,31 +40,32 @@ A social media platform where Python notebooks are the content. Users create not
 
 ## Current Position
 
-Phase: 02 (Core Notebook Experience) — EXECUTING
-Plan: 8 of 8 completed
+Phase: 03 (Execution & Publishing) — PLANNING
+Plan: Not started
+Progress: [██████████░░] 6 plans created
 
 ### Phase Status
 
-**Phase:** 2 - Core Notebook Experience
+**Phase:** 3 - Execution & Publishing
 **Plan:** Not started
-**Status:** Ready to plan
-**Progress:** [██████████] 100%
+**Status:** Plans created, ready to execute
+**Progress:** [██████████░░] 0%
 
 ### Progress Bar
 
 ```
 Phase 1: [██████████] 100%
-Phase 2: [███████░░░] 75%
-Phase 3: [░░░░░░░░░] 0%
-Phase 4: [░░░░░░░░░] 0%
-Phase 5: [░░░░░░░░░] 0%
-Phase 6: [░░░░░░░░░] 0%
-Overall: [███████░░░░] 29.2%
+Phase 2: [██████████] 100%
+Phase 3: [░░░░░░░░░░] 0%
+Phase 4: [░░░░░░░░░░] 0%
+Phase 5: [░░░░░░░░░░] 0%
+Phase 6: [░░░░░░░░░░] 0%
+Overall: [████████░░░░] 35.9%
 ```
 
 ### Current Focus
 
-Completed Plan 06: Notebook Viewer and My Notebooks pages. Next: Plan 07 (Comment interactions).
+Phase 3 plans created for container-based notebook compilation, dataset upload, CDN integration, and publishing workflow.
 
 ## Performance Metrics
 
@@ -72,14 +73,15 @@ Completed Plan 06: Notebook Viewer and My Notebooks pages. Next: Plan 07 (Commen
 
 - **Total v1 requirements:** 64
 - **Mapped to phases:** 64 (100%)
-- **Completed:** 19 (30%)
+- **Completed:** 30 (47%)
+- **In Progress (Phase 3):** 18 requirements
 
 ### Phase Progress
 
 - **Phases defined:** 6
-- **Phases completed:** 1 (16.7%)
-- **Plans created:** 17 (8 in Phase 2)
-- **Plans executed:** 9 (Phase 1)
+- **Phases completed:** 2 (33.3%)
+- **Plans created:** 23 (8 in Phase 1, 8 in Phase 2, 6 in Phase 3)
+- **Plans executed:** 17 (Phase 1 + Phase 2)
 
 ## Accumulated Context
 
@@ -87,44 +89,43 @@ Completed Plan 06: Notebook Viewer and My Notebooks pages. Next: Plan 07 (Commen
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| FastAPI (Python) backend | Same language as notebook processing → smoother integration with Jupyter, ML ecosystem, and container management. Async native for concurrent notebook execution. | — Pending implementation |
-| Next.js over React | Same React benefits + SSR/SEO, API routes, better performance for social feeds | — Pending implementation |
-| PostgreSQL database | Robust relational data for social features (users, posts, likes, comments, forks) | — Pending implementation |
-| MinIO for datasets | S3-compatible, runs locally in Docker, easy to migrate to AWS S3 | — Pending implementation |
-| CDN for notebook outputs | Pre-rendered charts/images/videos must load fast for Instagram-like feed experience | — Pending implementation |
-| Redis for cache/queue | Feed caching + job queues for async notebook compilation | — Pending implementation |
-| Forks have equal feed weightage | Encourages remixing and derivative work as core social behavior | — Pending implementation |
-| Auth required only for interactive actions | Lowers friction for discovery, maintains control for creation/engagement | — Pending implementation |
-| Tailwind CSS 4.2.2 | Latest version with JIT mode, small bundle size, excellent responsive design support | Implemented in frontend/tailwind.config.ts |
-| Path aliases (@/components, @/lib, @/app, @/stores) | Cleaner imports, better DX, matches shadcn/ui conventions | Implemented in frontend/tsconfig.json |
-| CSS custom properties for theming | Enables dark mode and consistent theming across components | Implemented in frontend/app/globals.css |
-| Strict TypeScript mode | Catch errors at compile time, better type safety | Implemented in frontend/tsconfig.json |
-| Pyodide 0.26.3 for WASM Python execution | Full Python 3.11 support in browser, compatible with numpy/pandas/matplotlib | Planned for Phase 2 |
-| Monaco Editor for code editing | VS Code editor component with syntax highlighting and autocomplete | Planned for Phase 2 |
-| Zustand for state management | Lightweight (1kb), no boilerplate, perfect for component-level state | Planned for Phase 2 |
-| Recursive CTEs for threaded comments | SQL-standard, simpler than materialized path for depth < 3 | Planned for Phase 2 |
-| Cursor-based pagination for feed | Better performance than offset-based, prevents duplicates on scroll | Planned for Phase 2 |
-| Cascade delete on notebook deletion | Removes all cells, likes, and comments automatically | Implemented in backend/app/models/notebook.py |
-| Unique constraint on likes | Prevents duplicate likes at database level (user_id, notebook_id) | Implemented in backend/app/models/like.py |
-| Parent_id foreign key for comments | Enables threaded replies with self-referential relationship | Implemented in backend/app/models/comment.py |
-| Depth limit enforcement (max 3) | Enforced in service layer, not database constraint | Planned for API implementation |
-| Phase 02-core-notebook-experience P01 | 12min | 3 tasks | 11 files | Implemented in Plan 02-01 |
-| Phase 02-core-notebook-experience P03 | 394 | 3 tasks | 5 files |
-| Phase 02-core-notebook-experience P02-02 | 1775247479 | 3 tasks | 11 files |
-| Phase 02-core-notebook-experience P02-02 | 300 | 3 tasks | 11 files |
-| Phase 02 P05 | 158 | 3 tasks | 5 files |
-| Phase 02-core-notebook-experience P04 | 1775248100 | 3 tasks | 8 files |
-| Phase 02-core-notebook-experience P07 | 4 minutes | 3 tasks | 6 files |
-| Phase 02-core-notebook-experience P08 | 15 | 3 tasks | 11 files |
+| FastAPI (Python) backend | Same language as notebook processing → smoother integration with Jupyter, ML ecosystem, and container management. Async native for concurrent notebook execution. | Implemented in Phase 1 |
+| Next.js over React | Same React benefits + SSR/SEO, API routes, better performance for social feeds | Implemented in Phase 1 |
+| PostgreSQL database | Robust relational data for social features (users, posts, likes, comments) | Implemented in Phase 1 |
+| MinIO for datasets | S3-compatible, runs locally in Docker, easy to migrate to AWS S3 | Planned for Phase 3 |
+| CDN for notebook outputs | Pre-rendered charts/images/videos must load fast for Instagram-like feed experience | Planned for Phase 3 |
+| Redis for cache/queue | Feed caching + job queues for async notebook compilation | Implemented in Phase 1 |
+| Forks have equal feed weightage | Encourages remixing and derivative work as core social behavior | Planned for Phase 4 |
+| Auth required only for interactive actions | Lowers friction for discovery, maintains control for creation/engagement | Implemented in Phase 1 |
+| Tailwind CSS 4.2.2 | Latest version with JIT mode, small bundle size, excellent responsive design support | Implemented in Phase 1 |
+| Path aliases (@/components, @/lib, @/app, @/stores) | Cleaner imports, better DX, matches shadcn/ui conventions | Implemented in Phase 1 |
+| CSS custom properties for theming | Enables dark mode and consistent theming across components | Implemented in Phase 1 |
+| Strict TypeScript mode | Catch errors at compile time, better type safety | Implemented in Phase 1 |
+| Pyodide 0.26.3 for WASM Python execution | Full Python 3.11 support in browser, compatible with numpy/pandas/matplotlib | Implemented in Phase 2 |
+| Monaco Editor for code editing | VS Code editor component with syntax highlighting and autocomplete | Implemented in Phase 2 |
+| Zustand for state management | Lightweight (1kb), no boilerplate, perfect for component-level state | Implemented in Phase 2 |
+| Recursive CTEs for threaded comments | SQL-standard, simpler than materialized path for depth < 3 | Implemented in Phase 2 |
+| Cursor-based pagination for feed | Better performance than offset-based, prevents duplicates on scroll | Implemented in Phase 2 |
+| Cascade delete on notebook deletion | Removes all cells, likes, and comments automatically | Implemented in Phase 2 |
+| Unique constraint on likes | Prevents duplicate likes at database level (user_id, notebook_id) | Implemented in Phase 2 |
+| Parent_id foreign key for comments | Enables threaded replies with self-referential relationship | Implemented in Phase 2 |
+| Depth limit enforcement (max 3) | Enforced in service layer, not database constraint | Implemented in Phase 2 |
+| Docker SDK 7.1.0 for container execution | Official SDK for programmatic Docker control with resource limits | Planned for Phase 3 |
+| nbconvert 7.17.0 for HTML rendering | Jupyter official converter for notebook to HTML | Planned for Phase 3 |
+| Celery 5.6.3 for async compilation | Python standard for background jobs with Redis broker | Planned for Phase 3 |
+| boto3 1.42.83 for S3/CloudFront operations | Official AWS SDK for storage and CDN | Planned for Phase 3 |
+| Container resource limits (SEC-01, INFRA-07) | 1GB memory, 50% CPU, network isolation, non-root user | Planned for Phase 3 |
+| Presigned URLs for dataset access (STOR-02, SEC-03) | 5-minute expiration for secure downloads | Planned for Phase 3 |
+| Server-side encryption (SEC-07) | AES-256 for data at rest in S3/MinIO | Planned for Phase 3 |
 
 ### Technical Stack
 
 **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/ui
 **Backend:** FastAPI 0.135.3, Uvicorn, SQLAlchemy 2.0, python-jose
 **Database:** PostgreSQL 17+
-**Cache/Queue:** Redis 7.4.0, Celery
-**Storage:** MinIO (local), AWS S3 (production), CloudFront CDN
-**Execution:** Pyodide 0.26.3 (WASM), Docker containers
+**Cache/Queue:** Redis 7.4.0, Celery 5.6.3 (planned)
+**Storage:** MinIO (local), AWS S3 (production), CloudFront CDN (planned)
+**Execution:** Pyodide 0.26.3 (WASM), Docker containers (planned)
 **Testing:** pytest, Vitest, Playwright, GitHub Actions
 
 ### Critical Implementation Notes
@@ -164,17 +165,17 @@ None at this time.
 
 ### Technical Debt
 
-None yet - project is in initialization phase.
+None - project is on track with Phase 3 planning.
 
 ## Session Continuity
 
 ### Last Action
 
-Completed Plan 02-06: Created NotebookCellViewer and NotebookViewer components (read-only, no code execution), notebook viewer page, and My Notebooks page with edit/delete functionality.
+Completed Phase 2 planning and execution. Created Phase 3 plans for execution and publishing.
 
 ### Next Action
 
-Execute Plan 02-07: Comment interactions (create, reply, nested threading).
+Execute Phase 3 Plan 01: Dataset Upload and Storage (Wave 1)
 
 ### Context Handoff
 
@@ -199,6 +200,10 @@ This state document should be referenced when:
 - Recursive CTEs for comment threading (max depth 3)
 - Cursor-based pagination for feed infinite scroll
 - Optimistic updates for like/comment interactions
+- **NEW: Phase 3 adds container compilation with Celery**
+- **NEW: MinIO/S3 for datasets and notebook outputs**
+- **NEW: CDN integration for fast output delivery**
+- **NEW: Image optimization with WebP conversion**
 
 ---
 
