@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, FileText, Eye, Loader2 } from 'lucide-react';
+import { Save, FileText, Eye, Loader2, Upload, Send } from 'lucide-react';
 import { useNotebookStore } from '@/stores/notebook-store';
+import { useCompilationStore } from '@/stores/compilation-store';
 import { NotebookCell } from './NotebookCell';
+import { CompilationDialog } from './CompilationDialog';
+import { PublishDialog } from './PublishDialog';
 
 interface NotebookEditorProps {
   notebookId?: number;
@@ -28,6 +31,9 @@ export function NotebookEditor({ notebookId }: NotebookEditorProps) {
   } = useNotebookStore();
 
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
+  const [showCompileDialog, setShowCompileDialog] = useState(false);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const { compilationStatus } = useCompilationStore();
 
   useEffect(() => {
     if (notebookId) {
@@ -96,12 +102,23 @@ export function NotebookEditor({ notebookId }: NotebookEditorProps) {
             </>
           )}
         </Button>
-        {!isPublished && (
-          <Button onClick={handlePublish} disabled={isSaving} variant="default">
-            <Eye className="h-4 w-4 mr-2" />
-            Publish
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCompileDialog(true)}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Compile
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowPublishDialog(true)}
+          disabled={compilationStatus !== 'success'}
+        >
+          <Send className="h-4 w-4 mr-2" />
+          Publish
+        </Button>
       </div>
 
       {/* Cells */}
@@ -143,5 +160,18 @@ export function NotebookEditor({ notebookId }: NotebookEditorProps) {
         </div>
       )}
     </div>
+
+    {/* Dialogs */}
+    <CompilationDialog
+      open={showCompileDialog}
+      onOpenChange={setShowCompileDialog}
+      notebookId={notebookId || null}
+    />
+
+    <PublishDialog
+      open={showPublishDialog}
+      onOpenChange={setShowPublishDialog}
+      notebookId={notebookId || null}
+    />
   );
 }
