@@ -88,8 +88,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Testing
 
-- [ ] **TEST-01**: Backend has unit tests for all API endpoints
-- [ ] **TEST-02**: Frontend has component tests for UI components
+- [x] **TEST-01**: Backend has unit tests for all API endpoints
+- [x] **TEST-02**: Frontend has component tests for UI components
 - [ ] **TEST-03**: Integration tests cover key user flows (signup, create, publish, view)
 - [ ] **TEST-04**: E2E tests cover critical paths (end-to-end notebook creation to viewing)
 - [ ] **TEST-05**: Test suite runs automatically on CI/CD
@@ -218,8 +218,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-05 | Phase 1 | Pending |
 | INFRA-06 | Phase 3 | Complete |
 | INFRA-07 | Phase 3 | Pending |
-| TEST-01 | Phase 5 | Pending |
-| TEST-02 | Phase 5 | Pending |
+| TEST-01 | Phase 5 | Complete |
+| TEST-02 | Phase 5 | Complete |
 | TEST-03 | Phase 5 | Pending |
 | TEST-04 | Phase 5 | Pending |
 | TEST-05 | Phase 5 | Pending |
