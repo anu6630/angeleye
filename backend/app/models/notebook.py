@@ -11,6 +11,13 @@ class Notebook(Base):
     title = Column(String(255), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     is_published = Column(Boolean, default=False, nullable=False, index=True)
+
+    # Pre-rendered output (STOR-03: outputs stored in S3/MinIO, VIEW-03: served via CDN)
+    output_s3_key = Column(String(500), nullable=True)  # S3 key of latest output
+    output_version = Column(String(50), nullable=True)  # Version timestamp
+    output_url = Column(Text, nullable=True)  # Public CDN URL
+    compiled_at = Column(DateTime(timezone=True), nullable=True)  # Last compilation time
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
