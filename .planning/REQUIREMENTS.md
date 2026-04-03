@@ -60,12 +60,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### User Profiles
 
-- [ ] **PROF-01**: User profile displays username and avatar
-- [ ] **PROF-02**: User profile displays bio
-- [ ] **PROF-03**: User profile shows count of published notebooks
-- [ ] **PROF-04**: User profile shows count of likes received
+- [x] **PROF-01**: User profile displays username and avatar
+- [x] **PROF-02**: User profile displays bio
+- [x] **PROF-03**: User profile shows count of published notebooks
+- [x] **PROF-04**: User profile shows count of likes received
 - [ ] **PROF-05**: User can edit their own profile
-- [ ] **PROF-06**: User profile lists user's published notebooks
+- [x] **PROF-06**: User profile lists user's published notebooks
 
 ### Storage & CDN
 
@@ -81,7 +81,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INFRA-01**: Frontend and backend are in separate folders (API-first architecture)
 - [ ] **INFRA-02**: Application runs in Docker Compose locally
 - [ ] **INFRA-03**: Application is deployable to AWS
-- [ ] **INFRA-04**: PostgreSQL stores relational data (users, notebooks, social graph)
+- [x] **INFRA-04**: PostgreSQL stores relational data (users, notebooks, social graph)
 - [ ] **INFRA-05**: Redis handles caching and job queues
 - [ ] **INFRA-06**: Celery manages async notebook compilation tasks
 - [ ] **INFRA-07**: Containers have strict resource limits (CPU, memory, timeout)
@@ -110,7 +110,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PERF-02**: Notebook viewer loads in under 3 seconds (first paint)
 - [ ] **PERF-03**: WASM editor initializes in under 5 seconds
 - [ ] **PERF-04**: Images are lazy-loaded and optimized
-- [ ] **PERF-05**: Database queries are indexed for common operations
+- [x] **PERF-05**: Database queries are indexed for common operations
 - [ ] **PERF-06**: Redis caching reduces database load for feed and trending
 
 ## v2 Requirements
@@ -199,12 +199,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DISC-03 | Phase 4 | Pending |
 | DISC-04 | Phase 4 | Pending |
 | DISC-05 | Phase 4 | Pending |
-| PROF-01 | Phase 1 | Pending |
-| PROF-02 | Phase 1 | Pending |
-| PROF-03 | Phase 1 | Pending |
-| PROF-04 | Phase 1 | Pending |
+| PROF-01 | Phase 1 | Complete |
+| PROF-02 | Phase 1 | Complete |
+| PROF-03 | Phase 1 | Complete |
+| PROF-04 | Phase 1 | Complete |
 | PROF-05 | Phase 1 | Pending |
-| PROF-06 | Phase 1 | Pending |
+| PROF-06 | Phase 1 | Complete |
 | STOR-01 | Phase 3 | Pending |
 | STOR-02 | Phase 3 | Pending |
 | STOR-03 | Phase 3 | Pending |
@@ -214,7 +214,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Pending |
 | INFRA-03 | Phase 6 | Pending |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Pending |
 | INFRA-06 | Phase 3 | Pending |
 | INFRA-07 | Phase 3 | Pending |
@@ -234,7 +234,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-02 | Phase 3 | Pending |
 | PERF-03 | Phase 2 | Pending |
 | PERF-04 | Phase 3 | Pending |
-| PERF-05 | Phase 1 | Pending |
+| PERF-05 | Phase 1 | Complete |
 | PERF-06 | Phase 4 | Pending |
 
 **Coverage:**
