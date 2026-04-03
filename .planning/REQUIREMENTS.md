@@ -78,8 +78,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Frontend and backend are in separate folders (API-first architecture)
-- [ ] **INFRA-02**: Application runs in Docker Compose locally
+- [x] **INFRA-01**: Frontend and backend are in separate folders (API-first architecture)
+- [x] **INFRA-02**: Application runs in Docker Compose locally
 - [ ] **INFRA-03**: Application is deployable to AWS
 - [x] **INFRA-04**: PostgreSQL stores relational data (users, notebooks, social graph)
 - [ ] **INFRA-05**: Redis handles caching and job queues
@@ -211,8 +211,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STOR-04 | Phase 3 | Pending |
 | STOR-05 | Phase 3 | Pending |
 | STOR-06 | Phase 3 | Pending |
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 6 | Pending |
 | INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Pending |

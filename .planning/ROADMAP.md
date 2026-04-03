@@ -136,7 +136,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Authentication | 0/9 | Not started | - |
+| 1. Foundation & Authentication | 2/9 | In Progress|  |
 | 2. Core Notebook Experience | 0/0 | Not started | - |
 | 3. Execution & Publishing | 0/0 | Not started | - |
 | 4. Forking & Social Discovery | 0/0 | Not started | - |
