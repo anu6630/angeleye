@@ -28,7 +28,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Notebook Viewing
 
 - [x] **VIEW-01**: User can view Instagram-style feed of published notebooks
-- [ ] **VIEW-02**: User can click notebook listing to see full pre-rendered notebook
+- [x] **VIEW-02**: User can click notebook listing to see full pre-rendered notebook
 - [ ] **VIEW-03**: Notebook outputs (charts, images, videos) are served via CDN for performance
 - [x] **VIEW-04**: Feed loads quickly with lazy loading for infinite scroll
 - [ ] **VIEW-05**: Notebook viewer displays pre-rendered outputs (not executing code in browser)
@@ -179,7 +179,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTE-06 | Phase 2 | Complete |
 | NOTE-07 | Phase 2 | Complete |
 | VIEW-01 | Phase 2 | Complete |
-| VIEW-02 | Phase 2 | Pending |
+| VIEW-02 | Phase 2 | Complete |
 | VIEW-03 | Phase 3 | Pending |
 | VIEW-04 | Phase 2 | Complete |
 | VIEW-05 | Phase 2 | Pending |
