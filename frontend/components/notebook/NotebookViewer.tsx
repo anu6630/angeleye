@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { apiClient, NotebookResponse } from '@/lib/api-client';
 import { NotebookCellViewer } from './NotebookCellViewer';
+import { CommentList } from '@/components/social/CommentList';
 import { useSocialStore } from '@/stores/social-store';
 
 interface NotebookViewerProps {
@@ -18,7 +19,7 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
   const [notebook, setNotebook] = useState<NotebookResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isLiked, toggleLike, loadComments, getComments, getCommentCount } = useSocialStore();
+  const { isLiked, toggleLike } = useSocialStore();
 
   useEffect(() => {
     async function loadNotebook() {
@@ -26,9 +27,6 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
         setIsLoading(true);
         const data = await apiClient.getNotebook(notebookId);
         setNotebook(data);
-
-        // Load comments
-        loadComments(notebookId);
       } catch (err: any) {
         setError(err.message || 'Failed to load notebook');
       } finally {
@@ -37,7 +35,7 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
     }
 
     loadNotebook();
-  }, [notebookId, loadComments]);
+  }, [notebookId]);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -87,8 +85,6 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
     );
   }
 
-  const comments = getComments(notebookId);
-  const commentCount = getCommentCount(notebookId) || notebook.comment_count;
   const liked = isLiked(notebookId);
 
   return (
@@ -140,7 +136,7 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
             </Button>
             <Button variant="outline" size="sm" disabled>
               <MessageCircle className="h-4 w-4 mr-2" />
-              {commentCount}
+              {notebook.comment_count}
             </Button>
             <Button variant="outline" size="sm" onClick={handleShare}>
               <Share2 className="h-4 w-4" />
@@ -155,46 +151,8 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
           ))}
         </div>
 
-        {/* Comments section - placeholder, will be in Plan 07 */}
-        <Card>
-          <CardHeader>
-            <h2 className="text-xl font-semibold">Comments</h2>
-          </CardHeader>
-          <CardContent>
-            {comments.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                No comments yet. Be the first to comment!
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="border-b pb-4 last:border-b-0">
-                    <div className="flex gap-3">
-                      <Avatar className="h-8 w-8">
-                        {comment.avatar_url ? (
-                          <AvatarImage src={comment.avatar_url} alt={comment.username} />
-                        ) : (
-                          <AvatarFallback className="text-xs bg-muted">
-                            {comment.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-sm">{comment.username}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(comment.created_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm">{comment.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Comments section */}
+        <CommentList notebookId={notebookId} commentCount={notebook.comment_count} />
       </div>
     </div>
   );

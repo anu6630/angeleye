@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { LikeButton } from '@/components/social/LikeButton';
+import { ShareButton } from '@/components/social/ShareButton';
 import { NotebookCard } from '@/lib/api-client';
 
 interface FeedCardProps {
@@ -39,18 +41,18 @@ export function FeedCard({ notebook }: FeedCardProps) {
         <CardContent className="pb-3">
           <h3 className="font-semibold text-lg line-clamp-2">{title}</h3>
         </CardContent>
+      </Link>
 
-        <CardFooter className="flex items-center gap-4 py-3 border-t">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Heart className="h-4 w-4" />
-            <span>{like_count}</span>
-          </div>
+      <CardFooter className="flex items-center justify-between py-3 border-t">
+        <div className="flex items-center gap-4">
+          <LikeButton notebookId={id} likeCount={like_count} showCount={true} />
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MessageCircle className="h-4 w-4" />
             <span>{comment_count}</span>
           </div>
-        </CardFooter>
-      </Link>
+        </div>
+        <ShareButton title={title} url={`${typeof window !== 'undefined' ? window.location.origin : ''}/notebooks/${id}`} />
+      </CardFooter>
     </Card>
   );
 }
