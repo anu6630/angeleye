@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir \
     jupyter==1.1.1 \
     nbconvert==7.17.0 \
+    pillow==12.2.0 \
     pandas==3.0.2 \
     numpy==2.4.4 \
     matplotlib==3.10.8 \
@@ -38,6 +39,18 @@ RUN pip install --no-cache-dir \
     scipy==1.15.2 \
     scikit-learn==1.8.0 \
     plotly==5.24.1
+
+# Configure nbconvert for optimized outputs (STOR-06)
+RUN mkdir -p /root/.jupyter && \
+    echo '{"NbConvertApp": {"display_data_priority": ["image/svg+xml", "application/pdf", "image/png", "image/jpeg"]}}' > /root/.jupyter/jupyter_nbconvert_config.json
+
+# Configure matplotlib for reasonable output sizes (STOR-06)
+RUN mkdir -p /root/.config/matplotlib && \
+    echo "backend: Agg\n\
+figure.dpi: 100\n\
+savefig.dpi: 100\n\
+savefig.format: png\n\
+savefig.bbox: tight" > /root/.config/matplotlib/matplotlibrc
 
 # Create non-root user for security (SEC-01)
 RUN useradd -m -u 1000 notebookuser && \
