@@ -9,6 +9,8 @@ interface SocialState {
   // Comment state
   comments: Record<number, CommentResponse[]>;
   commentCounts: Record<number, number>;
+  isLoading: boolean;
+  loadingNotebooks: Set<number>;
 
   // Like actions
   toggleLike: (notebookId: number) => Promise<void>;
@@ -28,6 +30,8 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
   notebookLikeCounts: {},
   comments: {},
   commentCounts: {},
+  isLoading: false,
+  loadingNotebooks: new Set(),
 
   toggleLike: async (notebookId) => {
     const state = get();
@@ -72,17 +76,39 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
   isLiked: (notebookId) => get().likedNotebooks.has(notebookId),
 
   loadComments: async (notebookId) => {
+    const { loadingNotebooks } = get();
+    if (loadingNotebooks.has(notebookId)) return;
+
+    set((state) => ({
+      isLoading: true,
+      loadingNotebooks: new Set(state.loadingNotebooks).add(notebookId),
+    }));
+
     try {
       const comments = await apiClient.getComments(notebookId);
-      set((state) => ({
-        comments: { ...state.comments, [notebookId]: comments },
-        commentCounts: {
-          ...state.commentCounts,
-          [notebookId]: comments.length,
-        },
-      }));
+      set((state) => {
+        const newLoading = new Set(state.loadingNotebooks);
+        newLoading.delete(notebookId);
+        return {
+          comments: { ...state.comments, [notebookId]: comments },
+          commentCounts: {
+            ...state.commentCounts,
+            [notebookId]: comments.length,
+          },
+          isLoading: newLoading.size > 0,
+          loadingNotebooks: newLoading,
+        };
+      });
     } catch (error) {
       console.error('Failed to load comments:', error);
+      set((state) => {
+        const newLoading = new Set(state.loadingNotebooks);
+        newLoading.delete(notebookId);
+        return {
+          isLoading: newLoading.size > 0,
+          loadingNotebooks: newLoading,
+        };
+      });
     }
   },
 
