@@ -19,7 +19,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **NOTE-01**: User can create Python notebooks using WASM-powered editor (Pyodide)
 - [x] **NOTE-02**: User can preview notebook compilation results locally before publishing
-- [ ] **NOTE-03**: User can upload datasets (CSV files) to support charts and data visualization
+- [x] **NOTE-03**: User can upload datasets (CSV files) to support charts and data visualization
 - [x] **NOTE-04**: User can compile notebooks in isolated online containers
 - [ ] **NOTE-05**: User can publish pre-rendered notebook outputs to social feed (if compilation succeeds and user approves)
 - [x] **NOTE-06**: User can edit their own unpublished notebooks
@@ -70,7 +70,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Storage & CDN
 
 - [x] **STOR-01**: Datasets (CSV files) are stored in MinIO
-- [ ] **STOR-02**: Dataset files have cryptographically secure URLs with expiration
+- [x] **STOR-02**: Dataset files have cryptographically secure URLs with expiration
 - [x] **STOR-03**: Pre-rendered notebook outputs are stored in MinIO/S3
 - [ ] **STOR-04**: Pre-rendered outputs are served via CloudFront CDN
 - [ ] **STOR-05**: CDN cache is invalidated when notebook is updated or deleted
@@ -98,7 +98,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SEC-01**: Notebook execution containers are isolated (no privileged mode, seccomp profiles)
 - [x] **SEC-02**: Container execution has timeout limits
-- [ ] **SEC-03**: Dataset access is restricted to notebook owner and viewers
+- [x] **SEC-03**: Dataset access is restricted to notebook owner and viewers
 - [ ] **SEC-04**: API endpoints have rate limiting
 - [ ] **SEC-05**: User inputs are validated and sanitized
 - [ ] **SEC-06**: OAuth tokens are securely stored and managed
@@ -173,7 +173,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-05 | Phase 1 | Complete |
 | NOTE-01 | Phase 2 | Complete |
 | NOTE-02 | Phase 2 | Complete |
-| NOTE-03 | Phase 3 | Pending |
+| NOTE-03 | Phase 3 | Complete |
 | NOTE-04 | Phase 3 | Complete |
 | NOTE-05 | Phase 3 | Pending |
 | NOTE-06 | Phase 2 | Complete |
@@ -206,7 +206,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROF-05 | Phase 1 | Complete |
 | PROF-06 | Phase 1 | Complete |
 | STOR-01 | Phase 3 | Complete |
-| STOR-02 | Phase 3 | Pending |
+| STOR-02 | Phase 3 | Complete |
 | STOR-03 | Phase 3 | Complete |
 | STOR-04 | Phase 3 | Pending |
 | STOR-05 | Phase 3 | Pending |
@@ -225,7 +225,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-05 | Phase 5 | Pending |
 | SEC-01 | Phase 3 | Complete |
 | SEC-02 | Phase 3 | Complete |
-| SEC-03 | Phase 3 | Pending |
+| SEC-03 | Phase 3 | Complete |
 | SEC-04 | Phase 1 | Pending |
 | SEC-05 | Phase 1 | Pending |
 | SEC-06 | Phase 1 | Pending |
