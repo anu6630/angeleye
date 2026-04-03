@@ -17,13 +17,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Notebook Creation
 
-- [ ] **NOTE-01**: User can create Python notebooks using WASM-powered editor (Pyodide)
-- [ ] **NOTE-02**: User can preview notebook compilation results locally before publishing
+- [x] **NOTE-01**: User can create Python notebooks using WASM-powered editor (Pyodide)
+- [x] **NOTE-02**: User can preview notebook compilation results locally before publishing
 - [ ] **NOTE-03**: User can upload datasets (CSV files) to support charts and data visualization
 - [ ] **NOTE-04**: User can compile notebooks in isolated online containers
 - [ ] **NOTE-05**: User can publish pre-rendered notebook outputs to social feed (if compilation succeeds and user approves)
-- [ ] **NOTE-06**: User can edit their own unpublished notebooks
-- [ ] **NOTE-07**: User can delete their own notebooks (unless forked by others)
+- [x] **NOTE-06**: User can edit their own unpublished notebooks
+- [x] **NOTE-07**: User can delete their own notebooks (unless forked by others)
 
 ### Notebook Viewing
 
@@ -43,12 +43,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Social Features
 
-- [ ] **SOC-01**: User can like notebooks
-- [ ] **SOC-02**: User can unlike notebooks
-- [ ] **SOC-03**: User can comment on notebooks
-- [ ] **SOC-04**: User can reply to comments (threaded comments)
+- [x] **SOC-01**: User can like notebooks
+- [x] **SOC-02**: User can unlike notebooks
+- [x] **SOC-03**: User can comment on notebooks
+- [x] **SOC-04**: User can reply to comments (threaded comments)
 - [ ] **SOC-05**: User can share notebooks (copy link, share to social platforms)
-- [ ] **SOC-06**: User can view like and comment counts on notebook cards in feed
+- [x] **SOC-06**: User can view like and comment counts on notebook cards in feed
 
 ### Discovery
 
@@ -108,7 +108,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **PERF-01**: Feed loads initial 10 notebooks in under 2 seconds
 - [ ] **PERF-02**: Notebook viewer loads in under 3 seconds (first paint)
-- [ ] **PERF-03**: WASM editor initializes in under 5 seconds
+- [x] **PERF-03**: WASM editor initializes in under 5 seconds
 - [ ] **PERF-04**: Images are lazy-loaded and optimized
 - [x] **PERF-05**: Database queries are indexed for common operations
 - [ ] **PERF-06**: Redis caching reduces database load for feed and trending
@@ -171,13 +171,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
 | AUTH-05 | Phase 1 | Complete |
-| NOTE-01 | Phase 2 | Pending |
-| NOTE-02 | Phase 2 | Pending |
+| NOTE-01 | Phase 2 | Complete |
+| NOTE-02 | Phase 2 | Complete |
 | NOTE-03 | Phase 3 | Pending |
 | NOTE-04 | Phase 3 | Pending |
 | NOTE-05 | Phase 3 | Pending |
-| NOTE-06 | Phase 2 | Pending |
-| NOTE-07 | Phase 2 | Pending |
+| NOTE-06 | Phase 2 | Complete |
+| NOTE-07 | Phase 2 | Complete |
 | VIEW-01 | Phase 2 | Pending |
 | VIEW-02 | Phase 2 | Pending |
 | VIEW-03 | Phase 3 | Pending |
@@ -188,12 +188,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FORK-03 | Phase 4 | Pending |
 | FORK-04 | Phase 4 | Pending |
 | FORK-05 | Phase 4 | Pending |
-| SOC-01 | Phase 2 | Pending |
-| SOC-02 | Phase 2 | Pending |
-| SOC-03 | Phase 2 | Pending |
-| SOC-04 | Phase 2 | Pending |
+| SOC-01 | Phase 2 | Complete |
+| SOC-02 | Phase 2 | Complete |
+| SOC-03 | Phase 2 | Complete |
+| SOC-04 | Phase 2 | Complete |
 | SOC-05 | Phase 2 | Pending |
-| SOC-06 | Phase 2 | Pending |
+| SOC-06 | Phase 2 | Complete |
 | DISC-01 | Phase 4 | Pending |
 | DISC-02 | Phase 4 | Pending |
 | DISC-03 | Phase 4 | Pending |
@@ -232,7 +232,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-07 | Phase 3 | Pending |
 | PERF-01 | Phase 3 | Pending |
 | PERF-02 | Phase 3 | Pending |
-| PERF-03 | Phase 2 | Pending |
+| PERF-03 | Phase 2 | Complete |
 | PERF-04 | Phase 3 | Pending |
 | PERF-05 | Phase 1 | Complete |
 | PERF-06 | Phase 4 | Pending |
