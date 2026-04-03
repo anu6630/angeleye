@@ -25,6 +25,70 @@ export interface ProfileCompletionData {
   bio?: string;
 }
 
+export interface NotebookCell {
+  id?: number;
+  cell_type: 'code' | 'markdown';
+  content: string;
+  order_index: number;
+}
+
+export interface NotebookCreate {
+  title: string;
+  cells?: NotebookCell[];
+}
+
+export interface NotebookUpdate {
+  title?: string;
+  is_published?: boolean;
+}
+
+export interface NotebookResponse {
+  id: number;
+  title: string;
+  user_id: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+  like_count: number;
+  comment_count: number;
+  cells?: NotebookCell[];
+}
+
+export interface NotebookCard {
+  id: number;
+  title: string;
+  username: string;
+  avatar_url?: string | null;
+  like_count: number;
+  comment_count: number;
+  created_at: string;
+}
+
+export interface FeedResponse {
+  items: NotebookCard[];
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
+export interface CommentCreate {
+  notebook_id: number;
+  content: string;
+  parent_id?: number;
+}
+
+export interface CommentResponse {
+  id: number;
+  notebook_id: number;
+  user_id: number;
+  parent_id?: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  username: string;
+  avatar_url?: string | null;
+  replies?: CommentResponse[];
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -49,6 +113,11 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
       throw new Error(error.error || error.message || 'Request failed');
+    }
+
+    // Handle 204 No Content (DELETE)
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return response.json();
@@ -98,6 +167,65 @@ class ApiClient {
 
   async getPublicProfile(username: string): Promise<User> {
     return this.request<User>(`/profiles/${username}`);
+  }
+
+  // Notebook endpoints
+  async createNotebook(data: NotebookCreate): Promise<NotebookResponse> {
+    return this.request<NotebookResponse>('/notebooks', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getNotebook(id: number): Promise<NotebookResponse> {
+    return this.request<NotebookResponse>(`/notebooks/${id}`);
+  }
+
+  async updateNotebook(id: number, data: NotebookUpdate): Promise<NotebookResponse> {
+    return this.request<NotebookResponse>(`/notebooks/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteNotebook(id: number): Promise<void> {
+    return this.request(`/notebooks/${id}`, { method: 'DELETE' });
+  }
+
+  async getUserNotebooks(): Promise<NotebookResponse[]> {
+    return this.request<NotebookResponse[]>('/notebooks');
+  }
+
+  // Feed endpoint
+  async getFeed(cursor?: string): Promise<FeedResponse> {
+    const params = new URLSearchParams();
+    if (cursor) params.append('cursor', cursor);
+    const query = params.toString();
+    return this.request<FeedResponse>(`/notebooks/feed${query ? `?${query}` : ''}`);
+  }
+
+  // Like endpoint
+  async toggleLike(notebookId: number): Promise<{ liked: boolean; like_count: number }> {
+    return this.request('/likes/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ notebook_id: notebookId }),
+    });
+  }
+
+  // Comment endpoints
+  async createComment(data: CommentCreate): Promise<CommentResponse> {
+    return this.request<CommentResponse>('/comments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getComments(notebookId: number): Promise<CommentResponse[]> {
+    return this.request<CommentResponse[]>(`/comments/${notebookId}`);
+  }
+
+  async getCommentCount(notebookId: number): Promise<{ count: number }> {
+    return this.request(`/comments/${notebookId}/count`);
   }
 }
 
