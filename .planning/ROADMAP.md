@@ -6,7 +6,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation & Authentication** - Project scaffolding, infrastructure setup, authentication, and user profiles
+- [x] **Phase 1: Foundation & Authentication** - Project scaffolding, infrastructure setup, authentication, and user profiles
 - [ ] **Phase 2: Core Notebook Experience** - WASM editor, notebook creation, viewing, and basic social interactions
 - [ ] **Phase 3: Execution & Publishing** - Container compilation, CDN integration, storage, and output publishing
 - [ ] **Phase 4: Forking & Social Discovery** - Forking system, ML-driven feeds, search, and advanced discovery
@@ -58,7 +58,16 @@
 4. User can like, unlike, and comment on notebooks (with threaded replies)
 5. User can share notebooks by copying link or sharing to social platforms
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+- [ ] 02-01-PLAN.md — Database models and schemas for notebooks, likes, comments (NOTE-01, NOTE-02, NOTE-06, NOTE-07, SOC-01, SOC-02, SOC-03, SOC-04, SOC-06, PERF-03)
+- [ ] 02-02-PLAN.md — Notebook, like, comment, and feed API endpoints (NOTE-01, NOTE-02, NOTE-06, NOTE-07, SOC-01, SOC-02, SOC-03, SOC-04, SOC-06, VIEW-01, VIEW-04)
+- [ ] 02-03-PLAN.md — Frontend state management and API client extensions (NOTE-01, NOTE-02, NOTE-06, NOTE-07, SOC-01, SOC-02, SOC-03, SOC-04, SOC-05, SOC-06, VIEW-01, VIEW-04, VIEW-05, PERF-03)
+- [ ] 02-04-PLAN.md — Notebook editor with Pyodide and Monaco Editor (NOTE-01, NOTE-02, PERF-03)
+- [ ] 02-05-PLAN.md — Instagram-style feed with infinite scroll (VIEW-01, VIEW-04)
+- [ ] 02-06-PLAN.md — Notebook viewer (read-only) and My Notebooks page (VIEW-02, VIEW-05, NOTE-06, NOTE-07)
+- [ ] 02-07-PLAN.md — Social interaction components (like, comment, share) with optimistic updates (SOC-01, SOC-02, SOC-03, SOC-04, SOC-05, SOC-06)
+- [ ] 02-08-PLAN.md — Missing UI components, integration, and import fixes (NOTE-01, VIEW-01, VIEW-02, SOC-05)
 
 **UI hint**: yes
 
@@ -136,8 +145,8 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Authentication | 7/9 | In Progress|  |
-| 2. Core Notebook Experience | 0/0 | Not started | - |
+| 1. Foundation & Authentication | 9/9 | Complete | 2026-04-03 |
+| 2. Core Notebook Experience | 0/8 | Not started | - |
 | 3. Execution & Publishing | 0/0 | Not started | - |
 | 4. Forking & Social Discovery | 0/0 | Not started | - |
 | 5. Testing & Quality | 0/0 | Not started | - |
@@ -178,4 +187,5 @@
 ---
 
 *Roadmap created: 2026-04-02*
-*Phase 1 revised: 2026-04-02*
+*Phase 1 completed: 2026-04-03*
+*Phase 2 planned: 2026-04-04*
