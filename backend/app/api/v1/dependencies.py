@@ -1,16 +1,67 @@
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from slowapi import Limiter
+from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.db.session import get_db
 from app.core.security import get_current_user_id
 from app.core.config import settings
 from app.core.exceptions import RateLimitError
+from app.core.cache import cache
 
-# Rate limiter setup (SEC-04, D-26, PITFALL 5)
-limiter = Limiter(key_func=get_remote_address)
+# Custom rate limiter that uses Redis storage
+class RedisLimiter:
+    """Redis-backed rate limiter for slowapi"""
+
+    def __init__(self):
+        self.cache = cache
+
+    def limit(self, key_func, limit: str):
+        """Create a rate limit decorator"""
+        def decorator(func):
+            async def wrapper(request: Request, *args, **kwargs):
+                # Get key from function
+                key = key_func(request)
+
+                # Parse limit (e.g., "10/minute" -> 10 requests per 60 seconds)
+                limit_parts = limit.split("/")
+                requests_per_period = int(limit_parts[0])
+                period = limit_parts[1] if len(limit_parts) > 1 else "minute"
+
+                # Convert period to seconds
+                period_seconds = {
+                    "second": 1,
+                    "minute": 60,
+                    "hour": 3600,
+                    "day": 86400
+                }.get(period, 60)
+
+                # Generate cache key
+                cache_key = f"rate_limit:{key}"
+
+                # Get current count
+                current = self.cache.get(cache_key)
+
+                if current is None:
+                    # First request in window
+                    self.cache.set(cache_key, 1, period_seconds)
+                elif current >= requests_per_period:
+                    # Rate limit exceeded
+                    raise RateLimitError(detail=f"Rate limit exceeded: {limit}")
+                else:
+                    # Increment counter
+                    self.cache.increment(cache_key)
+
+                return await func(request, *args, **kwargs)
+            return wrapper
+        return decorator
+
+# Rate limiter setup (SEC-04, D-26, INFRA-05)
+# Note: Using Redis-backed limiter for production
+redis_limiter = RedisLimiter()
+limiter = redis_limiter
 
 async def require_auth(
     request: Request
