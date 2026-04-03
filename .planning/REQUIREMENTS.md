@@ -31,7 +31,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **VIEW-02**: User can click notebook listing to see full pre-rendered notebook
 - [x] **VIEW-03**: Notebook outputs (charts, images, videos) are served via CDN for performance
 - [x] **VIEW-04**: Feed loads quickly with lazy loading for infinite scroll
-- [ ] **VIEW-05**: Notebook viewer displays pre-rendered outputs (not executing code in browser)
+- [x] **VIEW-05**: Notebook viewer displays pre-rendered outputs (not executing code in browser)
 
 ### Forking
 
@@ -74,7 +74,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **STOR-03**: Pre-rendered notebook outputs are stored in MinIO/S3
 - [x] **STOR-04**: Pre-rendered outputs are served via CloudFront CDN
 - [x] **STOR-05**: CDN cache is invalidated when notebook is updated or deleted
-- [ ] **STOR-06**: Static assets (images, videos) are optimized for delivery
+- [x] **STOR-06**: Static assets (images, videos) are optimized for delivery
 
 ### Infrastructure
 
@@ -109,7 +109,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PERF-01**: Feed loads initial 10 notebooks in under 2 seconds
 - [x] **PERF-02**: Notebook viewer loads in under 3 seconds (first paint)
 - [x] **PERF-03**: WASM editor initializes in under 5 seconds
-- [ ] **PERF-04**: Images are lazy-loaded and optimized
+- [x] **PERF-04**: Images are lazy-loaded and optimized
 - [x] **PERF-05**: Database queries are indexed for common operations
 - [ ] **PERF-06**: Redis caching reduces database load for feed and trending
 
@@ -182,7 +182,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIEW-02 | Phase 2 | Complete |
 | VIEW-03 | Phase 3 | Complete |
 | VIEW-04 | Phase 2 | Complete |
-| VIEW-05 | Phase 2 | Pending |
+| VIEW-05 | Phase 2 | Complete |
 | FORK-01 | Phase 4 | Pending |
 | FORK-02 | Phase 4 | Pending |
 | FORK-03 | Phase 4 | Pending |
@@ -210,7 +210,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STOR-03 | Phase 3 | Complete |
 | STOR-04 | Phase 3 | Complete |
 | STOR-05 | Phase 3 | Complete |
-| STOR-06 | Phase 3 | Pending |
+| STOR-06 | Phase 3 | Complete |
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 6 | Pending |
@@ -233,7 +233,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-01 | Phase 3 | Complete |
 | PERF-02 | Phase 3 | Complete |
 | PERF-03 | Phase 2 | Complete |
-| PERF-04 | Phase 3 | Pending |
+| PERF-04 | Phase 3 | Complete |
 | PERF-05 | Phase 1 | Complete |
 | PERF-06 | Phase 4 | Pending |
 

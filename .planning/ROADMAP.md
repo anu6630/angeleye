@@ -93,7 +93,7 @@
 - [ ] 03-03-PLAN.md — Docker container execution with resource limits and security (NOTE-04, INFRA-06, INFRA-07, SEC-01, SEC-02)
 - [ ] 03-04-PLAN.md — CDN integration and publishing workflow (NOTE-05, VIEW-03, STOR-03, STOR-04, STOR-05, PERF-01, PERF-02)
 - [ ] 03-05-PLAN.md — Frontend integration for compilation and publishing (NOTE-03, NOTE-04, NOTE-05, PERF-01, PERF-02, PERF-04)
-- [ ] 03-06-PLAN.md — Output optimization and image lazy loading (STOR-06, PERF-02, PERF-04, VIEW-05)
+- [x] 03-06-PLAN.md — Output optimization and image lazy loading (STOR-06, PERF-02, PERF-04, VIEW-05)
 
 ### Phase 4: Forking & Social Discovery
 
