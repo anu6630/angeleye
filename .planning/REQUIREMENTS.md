@@ -9,11 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can sign up via Google OAuth
-- [ ] **AUTH-02**: User can sign up via Facebook OAuth
-- [ ] **AUTH-03**: User session persists across browser refresh
+- [x] **AUTH-01**: User can sign up via Google OAuth
+- [x] **AUTH-02**: User can sign up via Facebook OAuth
+- [x] **AUTH-03**: User session persists across browser refresh
 - [ ] **AUTH-04**: Passive users can view notebooks without authentication
-- [ ] **AUTH-05**: Authentication is required only for creating, editing, liking, commenting, and forking
+- [x] **AUTH-05**: Authentication is required only for creating, editing, liking, commenting, and forking
 
 ### Notebook Creation
 
@@ -166,11 +166,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Pending |
-| AUTH-05 | Phase 1 | Pending |
+| AUTH-05 | Phase 1 | Complete |
 | NOTE-01 | Phase 2 | Pending |
 | NOTE-02 | Phase 2 | Pending |
 | NOTE-03 | Phase 3 | Pending |
