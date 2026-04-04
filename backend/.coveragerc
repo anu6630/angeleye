@@ -1,0 +1,18 @@
+[run]
+source = app
+omit =
+    tests/*
+    */migrations/*
+    */__init__.py
+    */conftest.py
+    */venv/*
+    */.venv/*
+branch = true
+
+[report]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[html]
+directory = htmlcov
