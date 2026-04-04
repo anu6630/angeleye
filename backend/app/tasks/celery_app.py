@@ -63,4 +63,10 @@ celery_app.conf.beat_schedule = {
         'task': 'app.tasks.feed_tasks.sync_views_to_database',
         'schedule': crontab(minute='*/5'),  # Every 5 minutes
     },
+    # Recalculate trending scores every 2 minutes
+    # Per CONTEXT.md D-25: Background recalculation for time-decayed scores
+    'recalculate-trending-scores': {
+        'task': 'app.tasks.trending_tasks.recalculate_trending_scores',
+        'schedule': crontab(minute='*/2'),  # Every 2 minutes
+    },
 }

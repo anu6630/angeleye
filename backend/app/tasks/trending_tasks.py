@@ -119,12 +119,5 @@ def bootstrap_trending_cache(self):
         logger.error(f"Trending cache bootstrap failed: {str(exc)}")
         raise
 
-
-# Configure Celery Beat schedule
+# Note: Beat schedule configured in celery_app.py to merge with other periodic tasks
 # Per CONTEXT.md D-25: Background recalculation every 2 minutes
-celery_app.conf.beat_schedule = {
-    'recalculate-trending-scores': {
-        'task': 'app.tasks.trending_tasks.recalculate_trending_scores',
-        'schedule': crontab(minute='*/2'),  # Every 2 minutes
-    },
-}
