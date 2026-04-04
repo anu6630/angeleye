@@ -3,6 +3,7 @@
 **Created:** 2026-04-02
 **Granularity:** Standard
 **Coverage:** 64/64 v1 requirements mapped
+**Last Updated:** 2026-04-05 (Phase 5 plans added)
 
 ## Phases
 
@@ -86,14 +87,20 @@
 4. Notebook outputs (charts, images, videos) are served via CDN for fast load times
 5. Dataset access is restricted to notebook owner and viewers with cryptographically secure URLs
 
-**Plans**: 6 plans
+**Plans**: 10 plans (revised from original 6 due to expanded scope)
 
-- [ ] 03-01-PLAN.md — Dataset upload and storage with MinIO/S3 integration (NOTE-03, STOR-01, STOR-02, SEC-03, SEC-07)
-- [ ] 03-02-PLAN.md — Celery task queue infrastructure for async compilation (INFRA-06, INFRA-07, SEC-02, NOTE-04)
-- [ ] 03-03-PLAN.md — Docker container execution with resource limits and security (NOTE-04, INFRA-06, INFRA-07, SEC-01, SEC-02)
-- [ ] 03-04-PLAN.md — CDN integration and publishing workflow (NOTE-05, VIEW-03, STOR-03, STOR-04, STOR-05, PERF-01, PERF-02)
-- [ ] 03-05-PLAN.md — Frontend integration for compilation and publishing (NOTE-03, NOTE-04, NOTE-05, PERF-01, PERF-02, PERF-04)
-- [x] 03-06-PLAN.md — Output optimization and image lazy loading (STOR-06, PERF-02, PERF-04, VIEW-05)
+- [x] 03-00-PLAN.md — Storage service foundation and MinIO/S3 setup (STOR-01, STOR-02, SEC-07)
+- [x] 03-01A-PLAN.md — Dataset API endpoints (upload, list, get, delete) (NOTE-03, STOR-01, SEC-03)
+- [x] 03-01B-PLAN.md — Dataset upload UI (CSV upload, validation, management) (NOTE-03, STOR-01)
+- [x] 03-02A-PLAN.md — Celery task queue infrastructure (INFRA-06, INFRA-07, SEC-02)
+- [x] 03-02B-PLAN.md — Container execution foundation (SEC-01, SEC-02)
+- [x] 03-03A-PLAN.md — Docker container execution with resource limits (NOTE-04, SEC-01, INFRA-07)
+- [x] 03-03B-PLAN.md — Compilation service orchestration (NOTE-04, INFRA-06)
+- [x] 03-04A-PLAN.md — CDN integration and output publishing (NOTE-05, VIEW-03, STOR-03, STOR-04, PERF-01)
+- [x] 03-04B-PLAN.md — Notebook publishing UI (compilation dialog, publish dialog) (NOTE-04, NOTE-05)
+- [x] 03-05A-PLAN.md — Output optimization and image lazy loading (STOR-06, PERF-02, PERF-04)
+- [x] 03-05B-PLAN.md — Notebook viewer integration with CDN outputs (VIEW-03, VIEW-05)
+- [x] 03-06-PLAN.md — Notebook output HTML rendering and cell display (VIEW-03, NOTE-05)
 
 ### Phase 4: Forking & Social Discovery
 
@@ -138,7 +145,15 @@
 4. E2E tests cover critical paths (end-to-end notebook creation to viewing)
 5. Test suite runs automatically on CI/CD and provides clear pass/fail reporting
 
-**Plans**: TBD
+**Plans**: 7 plans (6 waves + 1 setup)
+
+- [x] 05-00-PLAN.md — Test infrastructure setup (dependencies, directories, CI/CD foundation)
+- [ ] 05-01-PLAN.md — Backend unit tests (services and API endpoints, 20+ test files, 80%+ coverage)
+- [ ] 05-02-PLAN.md — Frontend component tests (30+ test files, 80%+ coverage)
+- [ ] 05-03-PLAN.md — Integration tests (6 user flows with real PostgreSQL/Redis)
+- [ ] 05-04-PLAN.md — E2E tests (Playwright with Chromium, 6 critical paths)
+- [ ] 05-05-PLAN.md — Performance testing (k6 load tests, Lighthouse CI budgets)
+- [ ] 05-06-PLAN.md — CI/CD automation (parallel execution, coverage aggregation, quality gates)
 
 ### Phase 6: Production Deployment
 
@@ -163,9 +178,9 @@
 |-------|----------------|--------|-----------|
 | 1. Foundation & Authentication | 9/9 | Complete | 2026-04-03 |
 | 2. Core Notebook Experience | 8/8 | Complete | 2026-04-04 |
-| 3. Execution & Publishing | 10/13 | In Progress|  |
-| 4. Forking & Social Discovery | 0/8 | Not started | - |
-| 5. Testing & Quality | 0/0 | Not started | - |
+| 3. Execution & Publishing | 12/12 | Complete | 2026-04-04 |
+| 4. Forking & Social Discovery | 8/8 | Complete | 2026-04-05 |
+| 5. Testing & Quality | 1/7 | In Progress|  |
 | 6. Production Deployment | 0/0 | Not started | - |
 
 ## Phase Ordering Rationale
@@ -205,5 +220,6 @@
 *Roadmap created: 2026-04-02*
 *Phase 1 completed: 2026-04-03*
 *Phase 2 completed: 2026-04-04*
-*Phase 3 planned: 2026-04-04*
-*Phase 4 planned: 2026-04-04*
+*Phase 3 completed: 2026-04-04*
+*Phase 4 completed: 2026-04-05*
+*Phase 5 planned: 2026-04-05*
