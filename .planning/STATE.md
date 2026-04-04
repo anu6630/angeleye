@@ -17,7 +17,7 @@ progress:
 
 **Last Updated:** 2026-04-04
 **Current Phase:** 04
-**Current Focus:** Phase 04 — forking-social-discovery
+**Current Focus:** Phase 04 — forking-social-discovery (executing plan 03 of 8)
 
 ## Project Reference
 
@@ -41,15 +41,15 @@ A social media platform where Python notebooks are the content. Users create not
 ## Current Position
 
 Phase: 04 (forking-social-discovery) — EXECUTING
-Plan: 2 of 8
-Progress: [████████░░] 31 plans created, 31 executed
+Plan: 3 of 8
+Progress: [████████░░] 31 plans created, 32 executed
 
 ### Phase Status
 
 **Phase:** 4 - Forking & Social Discovery
-**Plan:** Database Models (04-01) complete
+**Plan:** Follow System API (04-02) complete
 **Status:** Executing Phase 04
-**Progress:** [█████████░] 87%
+**Progress:** [█████████░] 88%
 
 ### Progress Bar
 
@@ -57,7 +57,7 @@ Progress: [████████░░] 31 plans created, 31 executed
 Phase 1: [██████████] 100%
 Phase 2: [██████████] 100%
 Phase 3: [██████████] 100%
-Phase 4: [█░░░░░░░░░] 13% (1/8 plans)
+Phase 4: [███░░░░░░░] 25% (2/8 plans)
 Phase 5: [░░░░░░░░░░] 0%
 Phase 6: [░░░░░░░░░░] 0%
 Overall: [██████████░] 82%
@@ -65,7 +65,7 @@ Overall: [██████████░] 82%
 
 ### Current Focus
 
-Phase 04-01 complete: Database models for fork lineage tracking, Follow social graph, and FeedEvent ML foundation. Implemented parent_id/root_id pattern, soft delete archive, and comprehensive migration 005.
+Phase 04-02 complete: FollowService with 100/day rate limiting, 5 API endpoints for follow/unfollow operations, count-only follower/following queries per CONTEXT.md D-10. Implemented comprehensive error handling (400, 404, 409, 429) and public GET endpoints for profile viewing (AUTH-04).
 
 ## Performance Metrics
 
@@ -142,9 +142,13 @@ Phase 04-01 complete: Database models for fork lineage tracking, Follow social g
 | One-way follow relationship | Twitter/Instagram style, unique constraint prevents duplicate follows | Implemented in Phase 4 |
 | FeedEvent raw logging | No ML inference in v1, JSON metadata for future features, bucket field for A/B testing | Implemented in Phase 4 |
 | SET NULL on fork lineage FKs | Preserves chains when parent deleted, prevents orphaned forks | Implemented in Phase 4 |
+| Follow rate limiting (100/day) | Enforced at service layer via COUNT query on created_at, maps to HTTP 429 | Implemented in Phase 4 |
+| Count-only follower lists | Per CONTEXT.md D-10, full user browsing deferred to v2 | Implemented in Phase 4 |
+| Public follow count endpoints | GET /followers/{id} and /following/{id} work without auth (AUTH-04) | Implemented in Phase 4 |
 | Phase 04-forking-social-discovery P01 | 195 | 4 tasks | 9 files |
 | Phase 04-forking-social-discovery P01 | 195 | 4 tasks | 9 files |
 | Phase 04 P01 | 195 | 4 tasks | 9 files |
+| Phase 04 P02 | 120 | 2 tasks | 5 files |
 | Phase 04 P03 | 90 | 2 tasks | 4 files |
 
 ### Technical Stack
@@ -200,11 +204,11 @@ None - project is on track with Phase 3 planning.
 
 ### Last Action
 
-Completed Phase 04 Plan 01: Database Models for Forking and Follow System. Added parent_id/root_id fork lineage fields to Notebook and Dataset models with self-referential relationships. Created Follow model with unique constraint for one-way social graph. Created FeedEvent model with JSON metadata for ML foundation. Created Alembic migration 005 adding all tables, columns, indexes, and foreign keys. Updated Pydantic schemas with fork lineage and social count fields. All models support fork chain traversal, soft delete archive, and engagement tracking.
+Completed Phase 04 Plan 02: Follow System API. Implemented FollowService with follow_user, unfollow_user, get_follow_counts, and is_following methods. Enforced 100/day rate limit via COUNT query on created_at. Created 5 API endpoints: POST /follows, DELETE /follows/{id}, GET /followers/{id}, GET /following/{id}, GET /check/{id}. Comprehensive error handling (400, 404, 409, 429, 500). Per CONTEXT.md D-10, follower/following endpoints return count-only (full list browsing deferred to v2). Per AUTH-04, GET endpoints are public (no auth required). Registered follows_router in main.py.
 
 ### Next Action
 
-Begin Phase 04 Plan 02: ForkService implementation for fork creation logic, dataset copying, and chain validation.
+Begin Phase 04 Plan 03: ForkService implementation for fork creation logic, dataset copying, and chain validation.
 
 ### Context Handoff
 
