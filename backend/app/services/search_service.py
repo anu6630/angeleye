@@ -31,7 +31,7 @@ class SearchService:
 
             # Configure searchable fields
             index = self.client.index(self.index_name)
-            index.update searchable_attributes(["title", "content", "author"])
+            index.update_searchable_attributes(["title", "content", "author"])
 
             # Configure filterable fields (for faceted search)
             index.update_filterable_attributes(["parent_id"])

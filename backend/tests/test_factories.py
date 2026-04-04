@@ -66,7 +66,6 @@ def create_notebook(
     db_session: Session,
     user_id: int,
     title: str = "Test Notebook",
-    description: str = "A test notebook",
     is_published: bool = False,
     **kwargs
 ) -> Notebook:
@@ -77,7 +76,6 @@ def create_notebook(
         db_session: Database session
         user_id: Owner user ID
         title: Notebook title
-        description: Notebook description
         is_published: Whether notebook is published
         **kwargs: Additional fields to override
 
@@ -87,7 +85,6 @@ def create_notebook(
     notebook = Notebook(
         user_id=user_id,
         title=title,
-        description=description,
         is_published=is_published,
         **kwargs
     )
