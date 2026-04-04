@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from typing import Optional, List, Dict
@@ -9,6 +10,8 @@ from app.models.user import User
 from app.models.like import Like
 from app.models.comment import Comment
 from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
+
+logger = logging.getLogger(__name__)
 
 
 class NotebookService:
@@ -39,6 +42,13 @@ class NotebookService:
         self.db.add(initial_cell)
         self.db.commit()
         self.db.refresh(notebook)
+
+        # Sync to search index (Per CONTEXT.md D-19: Real-time sync on every save)
+        try:
+            from app.services.search_service import SearchService
+            SearchService(self.db).index_notebook(notebook)
+        except Exception as e:
+            logger.warning(f"Failed to index notebook {notebook.id} in Meilisearch: {e}")
 
         # Get response data
         return self._to_response(notebook)
@@ -82,6 +92,13 @@ class NotebookService:
 
         self.db.commit()
         self.db.refresh(notebook)
+
+        # Sync to search index (Per CONTEXT.md D-19: Real-time sync on every update)
+        try:
+            from app.services.search_service import SearchService
+            SearchService(self.db).index_notebook(notebook)
+        except Exception as e:
+            logger.warning(f"Failed to index notebook {notebook.id} in Meilisearch: {e}")
 
         return self._to_response(notebook)
 
