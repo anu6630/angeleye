@@ -6,6 +6,8 @@ import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LikeButton } from '@/components/social/LikeButton';
 import { ShareButton } from '@/components/social/ShareButton';
+import { ForkButton } from '@/components/social/ForkButton';
+import { EngagementMetrics } from '@/components/social/EngagementMetrics';
 import { NotebookCard } from '@/lib/api-client';
 
 interface FeedCardProps {
@@ -13,7 +15,16 @@ interface FeedCardProps {
 }
 
 export function FeedCard({ notebook }: FeedCardProps) {
-  const { id, title, username, avatar_url, like_count, comment_count, created_at } = notebook;
+  const {
+    id,
+    title,
+    username,
+    avatar_url,
+    like_count,
+    comment_count,
+    view_count = 0,
+    created_at,
+  } = notebook;
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -43,15 +54,38 @@ export function FeedCard({ notebook }: FeedCardProps) {
         </CardContent>
       </Link>
 
-      <CardFooter className="flex items-center justify-between py-3 border-t">
-        <div className="flex items-center gap-4">
-          <LikeButton notebookId={id} likeCount={like_count} showCount={true} />
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <MessageCircle className="h-4 w-4" />
-            <span>{comment_count}</span>
+      <CardFooter className="flex flex-col gap-3 py-3 border-t">
+        {/* Engagement metrics */}
+        <EngagementMetrics
+          likes={like_count}
+          comments={comment_count}
+          views={view_count}
+          variant="compact"
+        />
+
+        {/* Action buttons */}
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-4">
+            <LikeButton notebookId={id} likeCount={like_count} showCount={false} />
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <MessageCircle className="h-4 w-4" />
+              <span>{comment_count}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ForkButton
+              notebookId={id}
+              notebookTitle={title}
+              variant="ghost"
+              size="sm"
+              showText={false}
+            />
+            <ShareButton
+              title={title}
+              url={`${typeof window !== 'undefined' ? window.location.origin : ''}/notebooks/${id}`}
+            />
           </div>
         </div>
-        <ShareButton title={title} url={`${typeof window !== 'undefined' ? window.location.origin : ''}/notebooks/${id}`} />
       </CardFooter>
     </Card>
   );
