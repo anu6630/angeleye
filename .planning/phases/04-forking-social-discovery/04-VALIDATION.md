@@ -2,8 +2,8 @@
 phase: 04
 slug: forking-social-discovery
 status: draft
-nyquist_compliant: false
-wave_0_complete: false
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-04-04
 ---
 
@@ -54,17 +54,17 @@ created: 2026-04-04
 
 ## Wave 0 Requirements
 
-- [ ] `backend/tests/unit/test_fork_service.py` — stubs for FORK-01, FORK-02
-- [ ] `backend/tests/unit/test_follow_service.py` — stubs for DISC-01
-- [ ] `backend/tests/unit/test_trending_service.py` — stubs for DISC-02
-- [ ] `backend/tests/unit/test_search_service.py` — stubs for DISC-03, DISC-04
-- [ ] `backend/tests/unit/test_cache_service.py` — stubs for PERF-06
-- [ ] `backend/tests/integration/test_fork_api.py` — API endpoint stubs
-- [ ] `backend/tests/integration/test_search_api.py` — search endpoint stubs
-- [ ] `backend/tests/integration/test_feed_api.py` — feed endpoint stubs
-- [ ] `backend/tests/conftest.py` — shared fixtures (database, redis, client)
-- [ ] `frontend/components/__tests__/FollowButton.test.tsx` — component test stubs
-- [ ] `frontend/components/__tests__/SearchBar.test.tsx` — component test stubs
+- [x] `backend/tests/unit/test_fork_service.py` — stubs for FORK-01, FORK-02
+- [x] `backend/tests/unit/test_follow_service.py` — stubs for DISC-01
+- [x] `backend/tests/unit/test_trending_service.py` — stubs for DISC-02
+- [x] `backend/tests/unit/test_search_service.py` — stubs for DISC-03, DISC-04
+- [x] `backend/tests/unit/test_cache_service.py` — stubs for PERF-06
+- [x] `backend/tests/integration/test_fork_api.py` — API endpoint stubs
+- [x] `backend/tests/integration/test_search_api.py` — search endpoint stubs
+- [x] `backend/tests/integration/test_feed_api.py` — feed endpoint stubs
+- [x] `backend/tests/conftest.py` — shared fixtures (database, redis, client)
+- [x] `frontend/components/__tests__/FollowButton.test.tsx` — component test stubs
+- [x] `frontend/components/__tests__/SearchBar.test.tsx` — component test stubs
 
 *Existing infrastructure covers: pytest (Phase 1), vitest (Phase 2), database fixtures (Phase 1).*
 
@@ -84,11 +84,11 @@ created: 2026-04-04
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
