@@ -19,7 +19,7 @@ class FeedEvent(Base):
     event_type = Column(String(50), nullable=False, index=True)  # 'impression', 'click', 'like', 'comment', 'time_spent'
     bucket_id = Column(String(100), nullable=True, index=True)  # Future A/B tests
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
-    metadata = Column(JSON, nullable=True)  # Future: device, location, referrer
+    event_metadata = Column(JSON, nullable=True)  # Future: device, location, referrer (renamed from 'metadata' to avoid SQLAlchemy reserved name)
 
     # Relationships
     user = relationship("User", back_populates="feed_events")
