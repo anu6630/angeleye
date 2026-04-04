@@ -54,8 +54,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **DISC-01**: Feed algorithm uses ML to show trending content
 - [x] **DISC-02**: Feed algorithm treats main notebooks and forks with equal weightage
-- [ ] **DISC-03**: User can search notebooks by title, tags, and author
-- [ ] **DISC-04**: User can filter search results by notebook type (original vs fork)
+- [x] **DISC-03**: User can search notebooks by title, tags, and author
+- [x] **DISC-04**: User can filter search results by notebook type (original vs fork)
 - [x] **DISC-05**: Feed shows engagement metrics (views, likes, comments)
 
 ### User Profiles
@@ -196,8 +196,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SOC-06 | Phase 2 | Complete |
 | DISC-01 | Phase 4 | Complete |
 | DISC-02 | Phase 4 | Complete |
-| DISC-03 | Phase 4 | Pending |
-| DISC-04 | Phase 4 | Pending |
+| DISC-03 | Phase 4 | Complete |
+| DISC-04 | Phase 4 | Complete |
 | DISC-05 | Phase 4 | Complete |
 | PROF-01 | Phase 1 | Complete |
 | PROF-02 | Phase 1 | Complete |

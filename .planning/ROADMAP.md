@@ -119,7 +119,7 @@
 - [x] 04-05-PLAN.md — Trending algorithm and Redis caching with Celery beat tasks (DISC-01, DISC-02, DISC-05, PERF-06)
 - [x] 04-06-PLAN.md — Meilisearch integration and faceted search (DISC-03, DISC-04)
 - [x] 04-07-PLAN.md — Feed personalization and engagement metrics tracking (DISC-01, DISC-02, DISC-05, PERF-06)
-- [ ] 04-08-PLAN.md — Frontend UI for forking, search, filters, and social features (FORK-01, FORK-02, FORK-03, FORK-04, DISC-03, DISC-04, DISC-05)
+- [x] 04-08-PLAN.md — Frontend UI for forking, search, filters, and social features (FORK-01, FORK-02, FORK-03, FORK-04, DISC-03, DISC-04, DISC-05)
 
 **UI hint**: yes
 
