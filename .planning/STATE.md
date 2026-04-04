@@ -4,20 +4,20 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 status: executing
-last_updated: "2026-04-04T18:42:37.408Z"
+last_updated: "2026-04-04T18:44:50.608Z"
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 38
-  completed_plans: 35
-  percent: 92
+  completed_plans: 36
+  percent: 95
 ---
 
 # Project State: NotebookSocial
 
 **Last Updated:** 2026-04-04
 **Current Phase:** 04
-**Current Focus:** Phase 04 — forking-social-discovery (executing plan 03 of 8)
+**Current Focus:** Phase 04 — forking-social-discovery (executing plan 05 of 8)
 
 ## Project Reference
 
@@ -41,15 +41,15 @@ A social media platform where Python notebooks are the content. Users create not
 ## Current Position
 
 Phase: 04 (forking-social-discovery) — EXECUTING
-Plan: 3 of 8
-Progress: [████████░░] 31 plans created, 32 executed
+Plan: 5 of 8
+Progress: [████████░░] 36 plans created, 36 executed
 
 ### Phase Status
 
 **Phase:** 4 - Forking & Social Discovery
-**Plan:** Follow System API (04-02) complete
+**Plan:** Trending Algorithm and Redis Caching (04-05) complete
 **Status:** Executing Phase 04
-**Progress:** [█████████░] 92%
+**Progress:** [██████████] 95%
 
 ### Progress Bar
 
@@ -57,15 +57,15 @@ Progress: [████████░░] 31 plans created, 32 executed
 Phase 1: [██████████] 100%
 Phase 2: [██████████] 100%
 Phase 3: [██████████] 100%
-Phase 4: [███░░░░░░░] 25% (2/8 plans)
+Phase 4: [███████░░░] 62% (5/8 plans)
 Phase 5: [░░░░░░░░░░] 0%
 Phase 6: [░░░░░░░░░░] 0%
-Overall: [██████████░] 82%
+Overall: [██████████░] 95%
 ```
 
 ### Current Focus
 
-Phase 04-02 complete: FollowService with 100/day rate limiting, 5 API endpoints for follow/unfollow operations, count-only follower/following queries per CONTEXT.md D-10. Implemented comprehensive error handling (400, 404, 409, 429) and public GET endpoints for profile viewing (AUTH-04).
+Phase 04-05 complete: TrendingService with time-decayed algorithm (engagement / pow((age_hours + 2), 1.5)), Redis ZSET caching for O(log N) ranking, real-time engagement updates on like/comment, Celery beat task every 2 minutes for time decay recalculation, bootstrap function for cache warming, feed API endpoints (GET /api/v1/feed/trending, GET /api/v1/feed). PERF-06 satisfied: Redis caching for trending scores operational.
 
 ## Performance Metrics
 
@@ -145,6 +145,13 @@ Phase 04-02 complete: FollowService with 100/day rate limiting, 5 API endpoints 
 | Follow rate limiting (100/day) | Enforced at service layer via COUNT query on created_at, maps to HTTP 429 | Implemented in Phase 4 |
 | Count-only follower lists | Per CONTEXT.md D-10, full user browsing deferred to v2 | Implemented in Phase 4 |
 | Public follow count endpoints | GET /followers/{id} and /following/{id} work without auth (AUTH-04) | Implemented in Phase 4 |
+| Time-decayed trending algorithm | Engagement = (likes * 2) + (comments * 3), decay = engagement / pow((age_hours + 2), 1.5) | Implemented in Phase 4 |
+| Redis ZSET for trending ranking | O(log N) ranking operations, HASH for per-notebook score storage with 24h TTL | Implemented in Phase 4 |
+| Real-time engagement updates | increment_engagement called on like/comment events, Redis failures don't block operations | Implemented in Phase 4 |
+| Celery beat every 2 minutes | Background recalculation of time decay for all published notebooks per D-25 | Implemented in Phase 4 |
+| Bootstrap cache warming | Populate trending:all ZSET from database on startup if cache empty per D-28 | Implemented in Phase 4 |
+| Forks equal in trending | No parent_id check in algorithm, forks have same weightage as originals | Implemented in Phase 4 |
+| Phase 04-forking-social-discovery P05 | 4 | 2 tasks | 10 files |
 | Phase 04-forking-social-discovery P01 | 195 | 4 tasks | 9 files |
 | Phase 04-forking-social-discovery P01 | 195 | 4 tasks | 9 files |
 | Phase 04 P01 | 195 | 4 tasks | 9 files |
@@ -152,6 +159,7 @@ Phase 04-02 complete: FollowService with 100/day rate limiting, 5 API endpoints 
 | Phase 04 P03 | 90 | 2 tasks | 4 files |
 | Phase 04-forking-social-discovery P04 | 15 | 2 tasks | 3 files |
 | Phase 04-forking-social-discovery P06 | 180 | 3 tasks | 8 files |
+| Phase 04 P05 | 251 | 2 tasks | 10 files |
 
 ### Technical Stack
 
@@ -206,11 +214,11 @@ None - project is on track with Phase 3 planning.
 
 ### Last Action
 
-Completed Phase 04 Plan 02: Follow System API. Implemented FollowService with follow_user, unfollow_user, get_follow_counts, and is_following methods. Enforced 100/day rate limit via COUNT query on created_at. Created 5 API endpoints: POST /follows, DELETE /follows/{id}, GET /followers/{id}, GET /following/{id}, GET /check/{id}. Comprehensive error handling (400, 404, 409, 429, 500). Per CONTEXT.md D-10, follower/following endpoints return count-only (full list browsing deferred to v2). Per AUTH-04, GET endpoints are public (no auth required). Registered follows_router in main.py.
+Completed Phase 04 Plan 05: Trending Algorithm and Redis Caching. Implemented TrendingService with time-decayed algorithm: engagement = (likes * 2) + (comments * 3), decayed_score = engagement / pow((age_hours + 2), 1.5). Redis ZSET for O(log N) ranking, HASH for per-notebook score storage (24h TTL). Real-time engagement updates on like/comment events via increment_engagement. Celery beat task every 2 minutes for time decay recalculation. Bootstrap function for cache warming on startup. Feed API endpoints: GET /api/v1/feed/trending (trending notebooks), GET /api/v1/feed (personalized feed = followed + trending). PERF-06 satisfied: Redis caching for trending scores operational.
 
 ### Next Action
 
-Begin Phase 04 Plan 03: ForkService implementation for fork creation logic, dataset copying, and chain validation.
+Begin Phase 04 Plan 06: Meilisearch Integration and Faceted Search.
 
 ### Context Handoff
 
