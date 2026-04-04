@@ -19,6 +19,7 @@ from app.api.v1.datasets import datasets_router
 from app.api.v1.compilation import compilation_router
 from app.api.v1.follows import router as follows_router
 from app.api.v1.search import router as search_router
+from app.api.v1.feed import router as feed_router
 from app.core.config import settings
 from app.core.cache import cache
 
@@ -52,6 +53,7 @@ app.include_router(datasets_router, prefix="/api/v1")
 app.include_router(compilation_router, prefix="/api/v1")
 app.include_router(follows_router, prefix="/api/v1", tags=["follows"])
 app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
+app.include_router(feed_router, prefix="/api/v1", tags=["feed"])
 
 # Global exception handler for custom API errors (D-23, D-24, D-25)
 @app.exception_handler(APIError)

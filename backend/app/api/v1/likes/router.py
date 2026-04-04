@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from app.db.session import get_db
 from app.services.like_service import LikeService
+from app.services.trending_service import TrendingService
 from app.schemas.like import LikeResponse
 from app.api.v1.dependencies import require_auth
 
@@ -28,7 +29,9 @@ async def toggle_like(
     """
     user_id = await require_auth(request)
 
-    like_service = LikeService(db)
+    # Initialize services
+    trending_service = TrendingService(db)
+    like_service = LikeService(db, trending_service=trending_service)
 
     try:
         like = like_service.toggle_like(user_id, like_data.notebook_id)

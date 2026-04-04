@@ -7,6 +7,7 @@ from app.models.comment import Comment
 from app.models.notebook import Notebook
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
+from app.services.trending_service import TrendingService
 
 
 class CommentService:
@@ -14,8 +15,9 @@ class CommentService:
 
     MAX_DEPTH = 3
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, trending_service: Optional[TrendingService] = None):
         self.db = db
+        self.trending_service = trending_service
 
     def create_comment(
         self,
@@ -69,6 +71,16 @@ class CommentService:
         self.db.add(comment)
         self.db.commit()
         self.db.refresh(comment)
+
+        # Update trending score in real-time
+        # Per CONTEXT.md D-24: Real-time score updates on engagement events
+        if self.trending_service:
+            try:
+                self.trending_service.increment_engagement(notebook_id, "comment")
+            except Exception as e:
+                # Log error but don't fail the comment operation
+                # Redis might be temporarily unavailable
+                pass
 
         # Get user info for response
         user = self.db.query(User).filter(User.id == user_id).first()

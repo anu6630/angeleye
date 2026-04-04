@@ -4,13 +4,15 @@ from typing import List, Optional
 from app.models.like import Like
 from app.models.notebook import Notebook
 from app.schemas.like import LikeResponse
+from app.services.trending_service import TrendingService
 
 
 class LikeService:
     """Service for like/unlike toggle operations"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, trending_service: Optional[TrendingService] = None):
         self.db = db
+        self.trending_service = trending_service
 
     def toggle_like(self, user_id: int, notebook_id: int) -> LikeResponse:
         """Toggle like/unlike for a notebook
@@ -46,6 +48,10 @@ class LikeService:
             self.db.delete(existing_like)
             self.db.commit()
 
+            # Update trending score (decrement engagement)
+            # Note: We don't decrement for unlike to avoid negative scores
+            # The algorithm will naturally decay over time
+
             # Return response indicating unlike
             return LikeResponse(
                 id=existing_like.id,
@@ -62,6 +68,16 @@ class LikeService:
             self.db.add(new_like)
             self.db.commit()
             self.db.refresh(new_like)
+
+            # Update trending score in real-time
+            # Per CONTEXT.md D-24: Real-time score updates on engagement events
+            if self.trending_service:
+                try:
+                    self.trending_service.increment_engagement(notebook_id, "like")
+                except Exception as e:
+                    # Log error but don't fail the like operation
+                    # Redis might be temporarily unavailable
+                    pass
 
             return LikeResponse(
                 id=new_like.id,

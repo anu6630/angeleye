@@ -5,6 +5,7 @@ from typing import Optional
 
 from app.db.session import get_db
 from app.services.comment_service import CommentService
+from app.services.trending_service import TrendingService
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.api.v1.dependencies import require_auth
 
@@ -32,7 +33,9 @@ async def create_comment(
     """
     user_id = await require_auth(request)
 
-    comment_service = CommentService(db)
+    # Initialize services
+    trending_service = TrendingService(db)
+    comment_service = CommentService(db, trending_service=trending_service)
 
     try:
         comment = comment_service.create_comment(
