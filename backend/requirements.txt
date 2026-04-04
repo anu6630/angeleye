@@ -24,3 +24,5 @@ pillow==12.2.0
 # Phase 3: Container Execution (NOTE-04, SEC-01, INFRA-07)
 docker==7.1.0
 nbconvert==7.17.0
+# Phase 4: Search (DISC-03, DISC-04: Meilisearch for fast, typo-tolerant search)
+meilisearch==0.31.5

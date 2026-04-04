@@ -68,6 +68,11 @@ class Settings(BaseSettings):
     # File upload limits (STOR-01: Max 100MB for datasets)
     MAX_DATASET_SIZE_MB: int = 100
 
+    # Search (DISC-03, DISC-04: Meilisearch for fast, typo-tolerant search)
+    MEILISEARCH_URL: str = "http://localhost:7700"
+    MEILISEARCH_INDEX_NAME: str = "notebooks"
+    MEILISEARCH_TIMEOUT: int = 5
+
     class Config:
         env_file = ".env"
         case_sensitive = True
