@@ -26,6 +26,11 @@ class User(Base):
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     datasets = relationship("Dataset", back_populates="user", cascade="all, delete-orphan")
 
+    # Social relationships (DISC-01: follow system for social graph)
+    followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
+    following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
+    feed_events = relationship("FeedEvent", back_populates="user", cascade="all, delete-orphan")
+
     __table_args__ = (
         Index('ix_users_email_lower', func.lower(email)),
         Index('ix_users_username_lower', func.lower(username)),
