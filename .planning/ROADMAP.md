@@ -7,7 +7,7 @@
 ## Phases
 
 - [x] **Phase 1: Foundation & Authentication** - Project scaffolding, infrastructure setup, authentication, and user profiles
-- [ ] **Phase 2: Core Notebook Experience** - WASM editor, notebook creation, viewing, and basic social interactions
+- [x] **Phase 2: Core Notebook Experience** - WASM editor, notebook creation, viewing, and basic social interactions
 - [ ] **Phase 3: Execution & Publishing** - Container compilation, CDN integration, storage, and output publishing
 - [ ] **Phase 4: Forking & Social Discovery** - Forking system, ML-driven feeds, search, and advanced discovery
 - [ ] **Phase 5: Testing & Quality** - Comprehensive test coverage across all components
@@ -110,7 +110,16 @@
 4. User can search notebooks by title, tags, and author with filters for original vs fork
 5. Fork attribution chain is preserved (shows lineage from original to current) and user cannot delete notebooks that have been forked
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+- [x] 04-01-PLAN.md — Database models for fork lineage, follow system, and event tracking (FORK-01, FORK-02, FORK-03, FORK-04, FORK-05, DISC-01, DISC-02)
+- [ ] 04-02-PLAN.md — Follow system API with rate limiting (DISC-01, DISC-02)
+- [ ] 04-03-PLAN.md — Forking system API with dataset forking and delete protection (FORK-01, FORK-02, FORK-03, FORK-04, FORK-05)
+- [ ] 04-04-PLAN.md — Redis infrastructure and caching foundation (PERF-06)
+- [ ] 04-05-PLAN.md — Trending algorithm and Redis caching with Celery beat tasks (DISC-01, DISC-02, DISC-05, PERF-06)
+- [ ] 04-06-PLAN.md — Meilisearch integration and faceted search (DISC-03, DISC-04)
+- [ ] 04-07-PLAN.md — Feed personalization and engagement metrics tracking (DISC-01, DISC-02, DISC-05, PERF-06)
+- [ ] 04-08-PLAN.md — Frontend UI for forking, search, filters, and social features (FORK-01, FORK-02, FORK-03, FORK-04, DISC-03, DISC-04, DISC-05)
 
 **UI hint**: yes
 
@@ -155,7 +164,7 @@
 | 1. Foundation & Authentication | 9/9 | Complete | 2026-04-03 |
 | 2. Core Notebook Experience | 8/8 | Complete | 2026-04-04 |
 | 3. Execution & Publishing | 10/13 | In Progress|  |
-| 4. Forking & Social Discovery | 0/0 | Not started | - |
+| 4. Forking & Social Discovery | 0/8 | Not started | - |
 | 5. Testing & Quality | 0/0 | Not started | - |
 | 6. Production Deployment | 0/0 | Not started | - |
 
@@ -197,3 +206,4 @@
 *Phase 1 completed: 2026-04-03*
 *Phase 2 completed: 2026-04-04*
 *Phase 3 planned: 2026-04-04*
+*Phase 4 planned: 2026-04-04*

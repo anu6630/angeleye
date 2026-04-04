@@ -35,11 +35,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Forking
 
-- [ ] **FORK-01**: User can fork any notebook (published or draft)
-- [ ] **FORK-02**: Forked notebook is a copy that user can edit and publish separately
-- [ ] **FORK-03**: Forks appear in feed with equal weightage to original notebooks
-- [ ] **FORK-04**: Fork attribution chain is preserved (shows lineage from original to current)
-- [ ] **FORK-05**: User cannot delete notebooks that have been forked by others
+- [x] **FORK-01**: User can fork any notebook (published or draft)
+- [x] **FORK-02**: Forked notebook is a copy that user can edit and publish separately
+- [x] **FORK-03**: Forks appear in feed with equal weightage to original notebooks
+- [x] **FORK-04**: Fork attribution chain is preserved (shows lineage from original to current)
+- [x] **FORK-05**: User cannot delete notebooks that have been forked by others
 
 ### Social Features
 
@@ -52,8 +52,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Discovery
 
-- [ ] **DISC-01**: Feed algorithm uses ML to show trending content
-- [ ] **DISC-02**: Feed algorithm treats main notebooks and forks with equal weightage
+- [x] **DISC-01**: Feed algorithm uses ML to show trending content
+- [x] **DISC-02**: Feed algorithm treats main notebooks and forks with equal weightage
 - [ ] **DISC-03**: User can search notebooks by title, tags, and author
 - [ ] **DISC-04**: User can filter search results by notebook type (original vs fork)
 - [ ] **DISC-05**: Feed shows engagement metrics (views, likes, comments)
@@ -183,19 +183,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIEW-03 | Phase 3 | Complete |
 | VIEW-04 | Phase 2 | Complete |
 | VIEW-05 | Phase 2 | Complete |
-| FORK-01 | Phase 4 | Pending |
-| FORK-02 | Phase 4 | Pending |
-| FORK-03 | Phase 4 | Pending |
-| FORK-04 | Phase 4 | Pending |
-| FORK-05 | Phase 4 | Pending |
+| FORK-01 | Phase 4 | Complete |
+| FORK-02 | Phase 4 | Complete |
+| FORK-03 | Phase 4 | Complete |
+| FORK-04 | Phase 4 | Complete |
+| FORK-05 | Phase 4 | Complete |
 | SOC-01 | Phase 2 | Complete |
 | SOC-02 | Phase 2 | Complete |
 | SOC-03 | Phase 2 | Complete |
 | SOC-04 | Phase 2 | Complete |
 | SOC-05 | Phase 2 | Complete |
 | SOC-06 | Phase 2 | Complete |
-| DISC-01 | Phase 4 | Pending |
-| DISC-02 | Phase 4 | Pending |
+| DISC-01 | Phase 4 | Complete |
+| DISC-02 | Phase 4 | Complete |
 | DISC-03 | Phase 4 | Pending |
 | DISC-04 | Phase 4 | Pending |
 | DISC-05 | Phase 4 | Pending |
