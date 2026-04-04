@@ -12,7 +12,8 @@ Interactive + social — make computational knowledge shareable and remixable, w
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] User can fork any notebook and publish their own version (forks appear in feed with equal weightage) - Validated in Phase 04: Forking & Social Discovery
+- [x] Feed algorithm uses ML to show trending content (main notebooks and forks have equal weightage) - Validated in Phase 04: Forking & Social Discovery
 
 ### Active
 
@@ -100,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after initialization*
+*Last updated: 2026-04-05 after Phase 04 completion*
