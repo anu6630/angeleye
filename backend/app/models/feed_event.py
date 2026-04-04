@@ -26,12 +26,6 @@ class FeedEvent(Base):
     notebook = relationship("Notebook")
 
     __table_args__ = (
-        Index('ix_feed_events_id', 'id'),
-        Index('ix_feed_events_user_id', 'user_id'),
-        Index('ix_feed_events_notebook_id', 'notebook_id'),
-        Index('ix_feed_events_event_type', 'event_type'),
-        Index('ix_feed_events_bucket_id', 'bucket_id'),
-        Index('ix_feed_events_timestamp', 'timestamp'),
         Index('ix_feed_events_user_timestamp', 'user_id', 'timestamp'),
         Index('ix_feed_events_notebook_type', 'notebook_id', 'event_type'),
     )

@@ -16,7 +16,3 @@ class Profile(Base):
 
     # Relationships
     user = relationship("User", back_populates="profile")
-
-    __table_args__ = (
-        Index('ix_profiles_user_id', 'user_id'),
-    )

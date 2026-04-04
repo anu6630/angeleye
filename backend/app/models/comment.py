@@ -21,11 +21,3 @@ class Comment(Base):
     # Relationships
     user = relationship("User", back_populates="comments")
     notebook = relationship("Notebook", back_populates="comments")
-
-    __table_args__ = (
-        Index('ix_comments_id', 'id'),
-        Index('ix_comments_notebook_id', 'notebook_id'),
-        Index('ix_comments_user_id', 'user_id'),
-        Index('ix_comments_parent_id', 'parent_id'),
-        Index('ix_comments_created_at', 'created_at'),
-    )

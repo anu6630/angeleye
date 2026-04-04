@@ -18,7 +18,4 @@ class Like(Base):
 
     __table_args__ = (
         UniqueConstraint('user_id', 'notebook_id', name='uq_user_notebook_like'),
-        Index('ix_likes_id', 'id'),
-        Index('ix_likes_user_id', 'user_id'),
-        Index('ix_likes_notebook_id', 'notebook_id'),
     )

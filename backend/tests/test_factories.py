@@ -18,11 +18,10 @@ from app.models.follow import Follow
 
 def create_user(
     db_session: Session,
-    oauth_provider: str = "google",
-    oauth_id: Optional[str] = None,
     username: Optional[str] = None,
     email: Optional[str] = None,
-    avatar_url: Optional[str] = None,
+    google_oauth_id: Optional[str] = None,
+    facebook_oauth_id: Optional[str] = None,
     **kwargs
 ) -> User:
     """
@@ -30,34 +29,30 @@ def create_user(
 
     Args:
         db_session: Database session
-        oauth_provider: OAuth provider (default: "google")
-        oauth_id: OAuth ID (auto-generated if None)
         username: Username (auto-generated if None)
         email: Email (auto-generated if None)
-        avatar_url: Avatar URL (default placeholder if None)
+        google_oauth_id: Google OAuth ID (auto-generated if None)
+        facebook_oauth_id: Facebook OAuth ID (auto-generated if None)
         **kwargs: Additional fields to override
 
     Returns:
         User instance
     """
     import random
-    import string
 
-    if oauth_id is None:
-        oauth_id = f"test-oauth-{random.randint(10000, 99999)}"
     if username is None:
         username = f"testuser_{random.randint(1000, 9999)}"
     if email is None:
         email = f"{username}@example.com"
-    if avatar_url is None:
-        avatar_url = "https://example.com/avatar.jpg"
+    if google_oauth_id is None and facebook_oauth_id is None:
+        # Default to Google OAuth
+        google_oauth_id = f"test-google-{random.randint(10000, 99999)}"
 
     user = User(
-        oauth_provider=oauth_provider,
-        oauth_id=oauth_id,
         username=username,
         email=email,
-        avatar_url=avatar_url,
+        google_oauth_id=google_oauth_id,
+        facebook_oauth_id=facebook_oauth_id,
         **kwargs
     )
     db_session.add(user)

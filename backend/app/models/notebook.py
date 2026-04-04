@@ -41,12 +41,3 @@ class Notebook(Base):
     # Self-referential relationships for fork lineage
     parent = relationship("Notebook", remote_side=[id], foreign_keys=[parent_id], backref="forks")
     root = relationship("Notebook", remote_side=[id], foreign_keys=[root_id])
-
-    __table_args__ = (
-        Index('ix_notebooks_user_id', 'user_id'),
-        Index('ix_notebooks_is_published', 'is_published'),
-        Index('ix_notebooks_created_at', 'created_at'),
-        Index('ix_notebooks_parent_id', 'parent_id'),
-        Index('ix_notebooks_root_id', 'root_id'),
-        Index('ix_notebooks_is_archived', 'is_archived'),
-    )

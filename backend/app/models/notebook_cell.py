@@ -17,8 +17,3 @@ class NotebookCell(Base):
 
     # Relationships
     notebook = relationship("Notebook", back_populates="cells")
-
-    __table_args__ = (
-        Index('ix_notebook_cells_id', 'id'),
-        Index('ix_notebook_cells_notebook_id', 'notebook_id'),
-    )

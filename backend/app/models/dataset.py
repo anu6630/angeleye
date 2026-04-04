@@ -37,10 +37,3 @@ class Dataset(Base):
     # Self-referential relationships for fork lineage
     parent = relationship("Dataset", remote_side=[id], foreign_keys=[parent_id], backref="forks")
     root = relationship("Dataset", remote_side=[id], foreign_keys=[root_id])
-
-    __table_args__ = (
-        Index('ix_datasets_user_id', 'user_id'),
-        Index('ix_datasets_created_at', 'created_at'),
-        Index('ix_datasets_parent_id', 'parent_id'),
-        Index('ix_datasets_root_id', 'root_id'),
-    )

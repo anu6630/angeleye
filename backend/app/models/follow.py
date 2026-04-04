@@ -24,7 +24,4 @@ class Follow(Base):
 
     __table_args__ = (
         UniqueConstraint('follower_id', 'following_id', name='uq_follow'),
-        Index('ix_follows_id', 'id'),
-        Index('ix_follows_follower_id', 'follower_id'),
-        Index('ix_follows_following_id', 'following_id'),
     )
