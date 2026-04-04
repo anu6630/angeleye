@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 
 from app.db.session import get_db
 from app.services.notebook_service import NotebookService
 from app.services.feed_service import FeedService
+from app.services.fork_service import ForkService
+from app.services.storage_service import StorageService
 from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
 from app.api.v1.dependencies import require_auth
 
@@ -180,3 +182,127 @@ async def get_feed(
     feed = feed_service.get_feed(cursor, limit)
 
     return feed
+
+
+@router.post("/notebooks/{notebook_id}/fork", response_model=NotebookResponse, status_code=status.HTTP_201_CREATED)
+async def fork_notebook(
+    request: Request,
+    notebook_id: int,
+    db: Session = Depends(get_db)
+):
+    """Fork a notebook (FORK-01)
+
+    Requires authentication. Creates an independent copy of the notebook with:
+    - All cells copied
+    - parent_id set to original notebook
+    - root_id set to original's root_id (or own id if original is root)
+    - Dataset forked via S3 server-side copy if present
+    - Fork starts as draft (is_published=False)
+
+    Per FORK-03: Forks have equal weightage in feed (no depth penalty)
+    Per AUTH-04: Authentication required for interactive actions
+    """
+    user_id = await require_auth(request)
+
+    # Verify original notebook exists
+    notebook_service = NotebookService(db)
+    original = notebook_service.get_notebook(notebook_id)
+
+    if not original:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found"
+        )
+
+    # Create fork
+    storage_service = StorageService()
+    fork_service = ForkService(db, storage_service)
+
+    try:
+        forked_notebook = fork_service.fork_notebook(notebook_id, user_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fork notebook: {str(e)}"
+        )
+
+    # Convert to response format
+    return notebook_service._to_response(forked_notebook)
+
+
+@router.get("/notebooks/{notebook_id}/forks")
+async def get_notebook_forks(
+    notebook_id: int,
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Get all forks of a notebook (FORK-05)
+
+    Public endpoint - no authentication required per AUTH-04.
+    Returns list of notebooks that have forked this notebook.
+
+    Query params:
+    - notebook_id: ID of notebook to get forks for
+    - limit: Maximum number of forks to return (default 50, max 100)
+
+    Returns forks ordered by created_at DESC (newest first)
+    """
+    # Verify notebook exists
+    notebook_service = NotebookService(db)
+    original = notebook_service.get_notebook(notebook_id)
+
+    if not original:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found"
+        )
+
+    fork_service = ForkService(db, StorageService())
+    forks = fork_service.get_forks(notebook_id, limit)
+
+    # Convert to response format
+    return {
+        "forks": [notebook_service._to_response(fork) for fork in forks],
+        "total": len(forks)
+    }
+
+
+@router.get("/notebooks/{notebook_id}/chain")
+async def get_fork_chain(
+    notebook_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get fork chain from original to current notebook (FORK-05)
+
+    Public endpoint - no authentication required per AUTH-04.
+    Returns the full attribution chain showing how this notebook evolved.
+
+    The chain is ordered from the original (root) to the current notebook,
+    showing each fork step in the lineage.
+
+    Returns:
+        List of notebooks from original to current
+    """
+    # Verify notebook exists
+    notebook_service = NotebookService(db)
+    original = notebook_service.get_notebook(notebook_id)
+
+    if not original:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found"
+        )
+
+    fork_service = ForkService(db, StorageService())
+    chain = fork_service.get_fork_chain(notebook_id)
+
+    # Convert to response format
+    return {
+        "chain": [notebook_service._to_response(nb) for nb in chain],
+        "total": len(chain)
+    }

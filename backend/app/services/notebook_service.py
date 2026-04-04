@@ -89,7 +89,17 @@ class NotebookService:
         """Delete notebook if owned by user
 
         Cascade delete will handle cells, likes, and comments automatically.
-        FK constraint will prevent deletion if notebook has been forked.
+        Checks for forks before deletion (FORK-04: delete protection).
+
+        Args:
+            notebook_id: ID of notebook to delete
+            user_id: ID of user requesting deletion
+
+        Returns:
+            True if deleted successfully
+
+        Raises:
+            ValueError: If user doesn't own notebook or if forks exist
         """
         notebook = (
             self.db.query(Notebook)
@@ -104,8 +114,17 @@ class NotebookService:
         if notebook.user_id != user_id:
             raise ValueError("User does not own this notebook")
 
+        # Check for forks (FORK-04: Delete protection)
+        fork_count = (
+            self.db.query(func.count(Notebook.id))
+            .filter(Notebook.parent_id == notebook_id)
+            .scalar()
+        )
+
+        if fork_count and fork_count > 0:
+            raise ValueError("Cannot delete notebook with forks. Use archive instead.")
+
         # Delete will cascade to cells, likes, and comments
-        # If notebook has forks, FK constraint will prevent deletion
         try:
             self.db.delete(notebook)
             self.db.commit()

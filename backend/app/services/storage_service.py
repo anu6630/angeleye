@@ -179,6 +179,38 @@ class StorageService:
             logger.error(f"Failed to delete object: {e}")
             raise Exception(f"Failed to delete object: {e}")
 
+    def copy_object(self, source_key: str, dest_key: str, bucket: str = None) -> bool:
+        """
+        Copy an object within S3/MinIO (server-side copy).
+
+        FORK-02: Dataset forking uses S3 server-side copy for efficiency
+
+        Args:
+            source_key: Source S3 object key
+            dest_key: Destination S3 object key
+            bucket: S3 bucket name (uses default from settings if not provided)
+
+        Returns:
+            True on success
+
+        Raises:
+            Exception: If copy fails
+        """
+        if bucket is None:
+            bucket = settings.MINIO_BUCKET if hasattr(settings, 'MINIO_BUCKET') else 'notebooksocial'
+
+        try:
+            self.s3_client.copy_object(
+                CopySource={'Bucket': bucket, 'Key': source_key},
+                Bucket=bucket,
+                Key=dest_key
+            )
+            logger.info(f"Copied object from {source_key} to {dest_key}")
+            return True
+        except ClientError as e:
+            logger.error(f"Failed to copy object from {source_key} to {dest_key}: {e}")
+            raise Exception(f"Failed to copy object: {e}")
+
     def check_bucket_exists(self, bucket: str) -> bool:
         """
         Check if a bucket exists.
