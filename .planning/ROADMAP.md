@@ -113,8 +113,8 @@
 **Plans**: 8 plans
 
 - [x] 04-01-PLAN.md — Database models for fork lineage, follow system, and event tracking (FORK-01, FORK-02, FORK-03, FORK-04, FORK-05, DISC-01, DISC-02)
-- [ ] 04-02-PLAN.md — Follow system API with rate limiting (DISC-01, DISC-02)
-- [ ] 04-03-PLAN.md — Forking system API with dataset forking and delete protection (FORK-01, FORK-02, FORK-03, FORK-04, FORK-05)
+- [x] 04-02-PLAN.md — Follow system API with rate limiting (DISC-01, DISC-02)
+- [x] 04-03-PLAN.md — Forking system API with dataset forking and delete protection (FORK-01, FORK-02, FORK-03, FORK-04, FORK-05)
 - [ ] 04-04-PLAN.md — Redis infrastructure and caching foundation (PERF-06)
 - [ ] 04-05-PLAN.md — Trending algorithm and Redis caching with Celery beat tasks (DISC-01, DISC-02, DISC-05, PERF-06)
 - [ ] 04-06-PLAN.md — Meilisearch integration and faceted search (DISC-03, DISC-04)
