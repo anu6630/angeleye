@@ -28,6 +28,9 @@ class UserResponse(BaseModel):
     username: str
     is_active: bool
     is_verified: bool
+    followers_count: Optional[int] = 0
+    following_count: Optional[int] = 0
+    is_following: Optional[bool] = False  # For current user context
     created_at: datetime
     updated_at: datetime
 
