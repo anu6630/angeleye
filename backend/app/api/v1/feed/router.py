@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.services.trending_service import TrendingService
 from app.services.notebook_service import NotebookService
 from app.services.feed_service import FeedService
+from app.api.v1.dependencies import optional_auth
 
 router = APIRouter()
 
@@ -29,92 +30,72 @@ async def get_trending_feed(
     - Forks treated equally (no depth penalty)
 
     Returns:
-        List of notebooks with engagement metadata
+        Feed with items, next_cursor, has_more
     """
-    # Get trending notebook IDs from Redis
-    trending_service = TrendingService(db)
-    notebook_ids = trending_service.get_trending_notebooks(limit)
+    feed_service = FeedService(db)
+    feed = feed_service.get_trending_feed(limit=limit)
 
-    # Fetch full notebook objects
-    notebook_service = NotebookService(db)
-    notebooks = []
-
-    for notebook_id in notebook_ids:
-        try:
-            notebook = notebook_service.get_notebook(notebook_id)
-            if notebook:
-                notebooks.append(notebook)
-        except Exception:
-            # Notebook might have been deleted
-            continue
-
-    return {
-        "notebooks": notebooks,
-        "total": len(notebooks)
-    }
+    return feed
 
 
 @router.get("/feed")
 async def get_personalized_feed(
+    request: Request,
     cursor: Optional[str] = None,
-    limit: int = 20,
+    limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
-    """Get personalized feed (DISC-12)
+    """Get personalized feed (DISC-12, DISC-05)
 
     Public endpoint - no authentication required per AUTH-04.
-    Mixes trending content with chronological feed.
+    Mixes followed users' content with trending content.
 
     Per CONTEXT.md D-12: Personalized feed = followed + trending
-    - If user has follows: prioritize followed content, fill rest with trending
-    - If user has 0 follows: return 100% trending (cold start fallback)
+    - If authenticated: prioritize followed content, fill rest with trending
+    - If 0 follows: return 100% trending (cold start fallback)
+    - If not authenticated: return trending feed
+
+    Per CONTEXT.md D-30: Engagement metrics displayed (likes, comments, views)
+    Per CONTEXT.md D-31: View tracking on feed load
 
     Query params:
     - cursor: ISO format timestamp for pagination
-    - limit: Number of items to return (max 50)
+    - limit: Number of items to return (max 100)
 
     Returns:
-        Feed items with pagination metadata
+        Feed items with engagement metrics and pagination metadata
     """
-    # Get chronological feed
+    # Get optional user ID (None if not authenticated)
+    user_id = await optional_auth(request)
+
+    # Get personalized feed
     feed_service = FeedService(db)
-    chronological_feed = feed_service.get_feed(cursor, limit)
+    feed = feed_service.get_personalized_feed(
+        user_id=user_id,
+        limit=limit,
+        cursor=cursor
+    )
 
-    # Get trending notebooks for cold start
-    trending_service = TrendingService(db)
-    trending_ids = trending_service.get_trending_notebooks(limit)
+    # Record views for all notebooks in feed (async, don't fail)
+    notebook_ids = [item["id"] for item in feed["items"]]
+    for nid in notebook_ids:
+        try:
+            feed_service.record_view(nid, user_id)
+        except Exception:
+            pass  # View tracking failure shouldn't break feed
 
-    # If chronological feed is empty or user has no follows, return trending
-    if not chronological_feed['items'] or len(chronological_feed['items']) < limit:
-        # Fetch trending notebooks
-        notebook_service = NotebookService(db)
-        trending_notebooks = []
+    # Get engagement metrics for all notebooks
+    if notebook_ids:
+        try:
+            metrics = feed_service.get_engagement_metrics(notebook_ids)
+            # Merge metrics into feed items
+            for item in feed["items"]:
+                nid = item["id"]
+                if nid in metrics:
+                    item["like_count"] = metrics[nid]["likes"]
+                    item["comment_count"] = metrics[nid]["comments"]
+                    item["view_count"] = metrics[nid]["views"]
+        except Exception:
+            pass  # Metrics failure shouldn't break feed
 
-        for notebook_id in trending_ids[:limit]:
-            try:
-                notebook = notebook_service.get_notebook(notebook_id)
-                if notebook:
-                    trending_notebooks.append(notebook)
-            except Exception:
-                continue
-
-        # Return trending as feed
-        return {
-            "items": [
-                {
-                    'id': nb.id,
-                    'title': nb.title,
-                    'username': nb.user.username,
-                    'avatar_url': nb.user.avatar_url if hasattr(nb.user, 'avatar_url') else None,
-                    'like_count': nb.like_count if hasattr(nb, 'like_count') else 0,
-                    'comment_count': nb.comment_count if hasattr(nb, 'comment_count') else 0,
-                    'created_at': nb.created_at
-                }
-                for nb in trending_notebooks
-            ],
-            "next_cursor": None,
-            "has_more": False
-        }
-
-    # Otherwise return chronological feed
-    return chronological_feed
+    return feed

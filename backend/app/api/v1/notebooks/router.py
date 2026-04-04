@@ -8,7 +8,7 @@ from app.services.feed_service import FeedService
 from app.services.fork_service import ForkService
 from app.services.storage_service import StorageService
 from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
-from app.api.v1.dependencies import require_auth
+from app.api.v1.dependencies import require_auth, optional_auth
 
 router = APIRouter()
 
@@ -34,13 +34,20 @@ async def create_notebook(
 @router.get("/notebooks/{notebook_id}", response_model=NotebookResponse)
 async def get_notebook(
     notebook_id: int,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Get notebook by ID (NOTE-02, VIEW-01)
 
     Public endpoint - no authentication required for viewing.
     Returns notebook with all cells.
+
+    Per CONTEXT.md D-31: View tracking on notebook view
+    Per CONTEXT.md D-30: Engagement metrics included in response
     """
+    # Get optional user ID for view tracking
+    user_id = await optional_auth(request)
+
     notebook_service = NotebookService(db)
     notebook = notebook_service.get_notebook(notebook_id)
 
@@ -49,6 +56,28 @@ async def get_notebook(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Notebook not found"
         )
+
+    # Record view (async, don't fail)
+    feed_service = FeedService(db)
+    try:
+        feed_service.record_view(notebook_id, user_id)
+    except Exception:
+        pass  # View tracking failure shouldn't break the request
+
+    # Get engagement metrics
+    try:
+        metrics = feed_service.get_engagement_metrics([notebook_id])
+        if notebook_id in metrics:
+            # Enhance response with metrics
+            if hasattr(notebook, 'like_count'):
+                notebook.like_count = metrics[notebook_id]["likes"]
+            if hasattr(notebook, 'comment_count'):
+                notebook.comment_count = metrics[notebook_id]["comments"]
+            # Add view_count if not present
+            if not hasattr(notebook, 'view_count'):
+                notebook.view_count = metrics[notebook_id]["views"]
+    except Exception:
+        pass  # Metrics failure shouldn't break the request
 
     return notebook
 

@@ -72,7 +72,10 @@ class NotebookService:
         user_id: int,
         data: NotebookUpdate
     ) -> Optional[NotebookResponse]:
-        """Update notebook (title or is_published) with ownership check"""
+        """Update notebook (title or is_published) with ownership check
+
+        Per CONTEXT.md D-27: Invalidate follower feed caches on publish/update
+        """
         notebook = (
             self.db.query(Notebook)
             .filter(Notebook.id == notebook_id)
@@ -86,12 +89,24 @@ class NotebookService:
         if notebook.user_id != user_id:
             raise ValueError("User does not own this notebook")
 
+        # Track if this is a publish event or title change
+        is_publishing = not notebook.is_published and data.is_published
+        is_content_change = notebook.title != data.title
+
         # Update fields
         notebook.title = data.title
         notebook.is_published = data.is_published
 
         self.db.commit()
         self.db.refresh(notebook)
+
+        # Invalidate follower caches if published or content changed
+        if is_publishing or is_content_change or notebook.is_published:
+            try:
+                from app.services.feed_service import FeedService
+                FeedService(self.db).invalidate_user_feed(user_id)
+            except Exception as e:
+                logger.warning(f"Failed to invalidate feed cache for user {user_id}: {e}")
 
         # Sync to search index (Per CONTEXT.md D-19: Real-time sync on every update)
         try:

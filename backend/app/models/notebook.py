@@ -25,6 +25,10 @@ class Notebook(Base):
     output_url = Column(Text, nullable=True)  # Public CDN URL
     compiled_at = Column(DateTime(timezone=True), nullable=True)  # Last compilation time
 
+    # View count (DISC-05: View tracking via Redis, batch synced to DB)
+    # Per CONTEXT.md D-31: Stored in Redis, synced to DB every 5 minutes
+    view_count = Column(Integer, nullable=True, server_default='0')
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

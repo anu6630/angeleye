@@ -54,9 +54,13 @@ celery_app.conf.update(
 celery_app.autodiscover_tasks(['app.tasks'])
 
 # Optional: Configure Celery Beat for periodic tasks (future: feed recalculation)
+from celery.schedules import crontab
+
 celery_app.conf.beat_schedule = {
-    # Example: 'recalculate-feed': {
-    #     'task': 'app.tasks.feed_tasks.recalculate_feed',
-    #     'schedule': crontab(minute='*'),  # Every minute
-    # },
+    # Sync view counts from Redis to database every 5 minutes
+    # Per CONTEXT.md D-31: Batch sync views to database every 5 minutes
+    'sync-views-to-database': {
+        'task': 'app.tasks.feed_tasks.sync_views_to_database',
+        'schedule': crontab(minute='*/5'),  # Every 5 minutes
+    },
 }
