@@ -99,6 +99,28 @@ vi.mock('next/navigation', () => ({
 // Global fetch mock (will be configured per test)
 global.fetch = vi.fn()
 
+// Mock localStorage
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString()
+    },
+    removeItem: (key: string) => {
+      delete store[key]
+    },
+    clear: () => {
+      store = {}
+    },
+  }
+})()
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+})
+
 // Suppress console errors in tests (unless debugging)
 const originalError = console.error
 beforeAll(() => {
