@@ -56,7 +56,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DISC-02**: Feed algorithm treats main notebooks and forks with equal weightage
 - [ ] **DISC-03**: User can search notebooks by title, tags, and author
 - [ ] **DISC-04**: User can filter search results by notebook type (original vs fork)
-- [ ] **DISC-05**: Feed shows engagement metrics (views, likes, comments)
+- [x] **DISC-05**: Feed shows engagement metrics (views, likes, comments)
 
 ### User Profiles
 
@@ -111,7 +111,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PERF-03**: WASM editor initializes in under 5 seconds
 - [x] **PERF-04**: Images are lazy-loaded and optimized
 - [x] **PERF-05**: Database queries are indexed for common operations
-- [ ] **PERF-06**: Redis caching reduces database load for feed and trending
+- [x] **PERF-06**: Redis caching reduces database load for feed and trending
 
 ## v2 Requirements
 
@@ -198,7 +198,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DISC-02 | Phase 4 | Complete |
 | DISC-03 | Phase 4 | Pending |
 | DISC-04 | Phase 4 | Pending |
-| DISC-05 | Phase 4 | Pending |
+| DISC-05 | Phase 4 | Complete |
 | PROF-01 | Phase 1 | Complete |
 | PROF-02 | Phase 1 | Complete |
 | PROF-03 | Phase 1 | Complete |
@@ -235,7 +235,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-03 | Phase 2 | Complete |
 | PERF-04 | Phase 3 | Complete |
 | PERF-05 | Phase 1 | Complete |
-| PERF-06 | Phase 4 | Pending |
+| PERF-06 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 64 total
