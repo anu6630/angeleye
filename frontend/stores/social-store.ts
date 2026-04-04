@@ -12,6 +12,11 @@ interface SocialState {
   isLoading: boolean;
   loadingNotebooks: Set<number>;
 
+  // Follow state (DISC-03)
+  followingIds: Set<number>;
+  followersCount: Record<number, number>;
+  followingCount: Record<number, number>;
+
   // Like actions
   toggleLike: (notebookId: number) => Promise<void>;
   isLiked: (notebookId: number) => boolean;
@@ -21,6 +26,12 @@ interface SocialState {
   createComment: (notebookId: number, content: string, parentId?: number) => Promise<void>;
   getComments: (notebookId: number) => CommentResponse[];
   getCommentCount: (notebookId: number) => number;
+
+  // Follow actions (DISC-03)
+  setFollowingIds: (ids: number[]) => void;
+  toggleFollow: (userId: number) => Promise<void>;
+  isFollowing: (userId: number) => boolean;
+  initializeFollows: () => Promise<void>;
 
   reset: () => void;
 }
@@ -32,6 +43,9 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
   commentCounts: {},
   isLoading: false,
   loadingNotebooks: new Set(),
+  followingIds: new Set(),
+  followersCount: {},
+  followingCount: {},
 
   toggleLike: async (notebookId) => {
     const state = get();
@@ -210,11 +224,82 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
   getComments: (notebookId) => get().comments[notebookId] || [],
   getCommentCount: (notebookId) => get().commentCounts[notebookId] || 0,
 
+  // Follow actions (DISC-03)
+  setFollowingIds: (ids) =>
+    set({
+      followingIds: new Set(ids),
+    }),
+
+  toggleFollow: async (userId) => {
+    const state = get();
+    const isFollowing = state.followingIds.has(userId);
+
+    // Optimistic update
+    set((prevState) => {
+      const newFollowing = new Set(prevState.followingIds);
+      if (isFollowing) {
+        newFollowing.delete(userId);
+      } else {
+        newFollowing.add(userId);
+      }
+      return {
+        followingIds: newFollowing,
+        followersCount: {
+          ...prevState.followersCount,
+          [userId]: (prevState.followersCount[userId] || 0) + (isFollowing ? -1 : 1),
+        },
+      };
+    });
+
+    try {
+      if (isFollowing) {
+        await apiClient.unfollowUser(userId);
+      } else {
+        await apiClient.followUser(userId);
+      }
+    } catch (error) {
+      // Rollback on error
+      set((prevState) => {
+        const newFollowing = new Set(prevState.followingIds);
+        if (isFollowing) {
+          newFollowing.add(userId);
+        } else {
+          newFollowing.delete(userId);
+        }
+        return {
+          followingIds: newFollowing,
+          followersCount: {
+            ...prevState.followersCount,
+            [userId]: (prevState.followersCount[userId] || 0) + (isFollowing ? 1 : -1),
+          },
+        };
+      });
+      throw error;
+    }
+  },
+
+  isFollowing: (userId) => get().followingIds.has(userId),
+
+  initializeFollows: async () => {
+    try {
+      const user = await apiClient.getCurrentUser();
+      const following = await apiClient.getUserFollowing(user.id);
+      set({
+        followingIds: new Set(following.map((u) => u.id)),
+      });
+    } catch (error) {
+      console.error('Failed to initialize follows:', error);
+    }
+  },
+
   reset: () =>
     set({
       likedNotebooks: new Set(),
       notebookLikeCounts: {},
       comments: {},
       commentCounts: {},
+      followingIds: new Set(),
+      followersCount: {},
+      followingCount: {},
     }),
 }));

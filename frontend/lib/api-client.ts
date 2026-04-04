@@ -51,12 +51,15 @@ export interface NotebookResponse {
   updated_at: string;
   like_count: number;
   comment_count: number;
+  view_count?: number;
   cells?: NotebookCell[];
   user?: {
     id: number;
     username: string;
     avatar_url?: string | null;
   };
+  parent_id?: number | null;
+  root_id?: number | null;
 }
 
 export interface NotebookCard {
@@ -66,7 +69,10 @@ export interface NotebookCard {
   avatar_url?: string | null;
   like_count: number;
   comment_count: number;
+  view_count?: number;
   created_at: string;
+  parent_id?: number | null;
+  root_id?: number | null;
 }
 
 export interface FeedResponse {
@@ -345,6 +351,63 @@ class ApiClient {
 
   async compileAndPublish(notebookId: number, datasetId?: number): Promise<AsyncCompilationResponse> {
     return this.compileNotebookAsync({ notebook_id: notebookId, dataset_id: datasetId });
+  }
+
+  // Fork operations (FORK-01, FORK-02, FORK-03)
+  async forkNotebook(notebookId: number): Promise<NotebookResponse> {
+    return this.request<NotebookResponse>(`/notebooks/${notebookId}/fork`, {
+      method: 'POST',
+    });
+  }
+
+  async getNotebookForks(notebookId: number, limit: number = 50): Promise<NotebookResponse[]> {
+    return this.request<NotebookResponse[]>(`/notebooks/${notebookId}/forks?limit=${limit}`);
+  }
+
+  async getForkChain(notebookId: number): Promise<NotebookResponse[]> {
+    return this.request<NotebookResponse[]>(`/notebooks/${notebookId}/chain`);
+  }
+
+  // Follow operations (DISC-03)
+  async followUser(userId: number): Promise<{ message: string; following_id: number }> {
+    return this.request<{ message: string; following_id: number }>('/follows', {
+      method: 'POST',
+      body: JSON.stringify({ following_id: userId }),
+    });
+  }
+
+  async unfollowUser(userId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/follows/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getUserFollowers(userId: number, limit: number = 50): Promise<User[]> {
+    return this.request<User[]>(`/follows/followers/${userId}?limit=${limit}`);
+  }
+
+  async getUserFollowing(userId: number, limit: number = 50): Promise<User[]> {
+    return this.request<User[]>(`/follows/following/${userId}?limit=${limit}`);
+  }
+
+  async checkFollowing(userId: number): Promise<{ is_following: boolean }> {
+    return this.request<{ is_following: boolean }>(`/follows/check/${userId}`);
+  }
+
+  // Search operations (DISC-04, DISC-05)
+  async searchNotebooks(
+    query: string,
+    tab: string = 'all',
+    limit: number = 50
+  ): Promise<{ notebooks: NotebookResponse[]; total: number; empty_state: boolean; message?: string }> {
+    const params = new URLSearchParams();
+    if (query) params.append('q', query);
+    if (tab) params.append('tab', tab);
+    params.append('limit', limit.toString());
+    const queryString = params.toString();
+    return this.request<{ notebooks: NotebookResponse[]; total: number; empty_state: boolean; message?: string }>(
+      `/search${queryString ? `?${queryString}` : ''}`
+    );
   }
 }
 
