@@ -298,3 +298,73 @@ async def logout(response: Response):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"success": True, "message": "Logged out successfully"}
+
+@router.post('/test-login')
+async def test_login(
+    login_data: dict,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """
+    Test-only endpoint for performance/load testing.
+    Creates a test user and returns auth tokens without OAuth.
+    WARNING: Only enable in test environments!
+    """
+    # Only allow in test/development environments
+    if os.getenv('ENV') == 'production':
+        raise HTTPException(status_code=403, detail="Test login not allowed in production")
+
+    auth_service = AuthService(db)
+
+    # Check if user already exists
+    from app.models.user import User
+    existing_user = db.query(User).filter(User.email == login_data.get('email')).first()
+
+    if existing_user:
+        # Return tokens for existing user
+        access_token = create_access_token(data={"sub": existing_user.id})
+        refresh_token = create_refresh_token(data={"sub": existing_user.id})
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "id": existing_user.id,
+            "email": existing_user.email,
+            "username": existing_user.username
+        }
+
+    # Create new test user
+    try:
+        user = auth_service.create_oauth_user(
+            provider='test',
+            oauth_id=f"test_{login_data.get('email')}",
+            email=login_data.get('email'),
+            name=login_data.get('name', 'Test User')
+        )
+
+        # Complete profile with random username
+        import random
+        import string
+        random_suffix = ''.join(random.choices(string.ascii_lowercase, k=8))
+        auth_service.update_user_profile(
+            user_id=user.id,
+            username=f"testuser_{random_suffix}",
+            avatar_url=None,
+            bio="Performance test user"
+        )
+
+        # Create tokens
+        access_token = create_access_token(data={"sub": user.id})
+        refresh_token = create_refresh_token(data={"sub": user.id})
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "id": user.id,
+            "email": user.email,
+            "username": user.username
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create test user: {str(e)}")
