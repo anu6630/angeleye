@@ -1,0 +1,149 @@
+{
+  "budgets": [
+    {
+      "path": "/*",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 1500
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2500
+        },
+        {
+          "metric": "first-meaningful-paint",
+          "budget": 2000
+        },
+        {
+          "metric": "speed-index",
+          "budget": 2500
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 3500
+        },
+        {
+          "metric": "total-blocking-time",
+          "budget": 300
+        },
+        {
+          "metric": "cumulative-layout-shift",
+          "budget": 0.1
+        }
+      ],
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 500
+        },
+        {
+          "resourceType": "total",
+          "budget": 2000
+        },
+        {
+          "resourceType": "image",
+          "budget": 1000
+        }
+      ],
+      "resourceCounts": [
+        {
+          "resourceType": "script",
+          "budget": 10
+        },
+        {
+          "resourceType": "total",
+          "budget": 30
+        }
+      ]
+    },
+    {
+      "path": "/feed",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 1200
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2000
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 3000
+        }
+      ],
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 400
+        },
+        {
+          "resourceType": "total",
+          "budget": 1500
+        }
+      ]
+    },
+    {
+      "path": "/notebooks/*",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 1500
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 3000
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 3500
+        }
+      ]
+    },
+    {
+      "path": "/editor",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 2000
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 5000
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 5000
+        }
+      ],
+      "resourceSizes": [
+        {
+          "resourceType": "script",
+          "budget": 800
+        },
+        {
+          "resourceType": "total",
+          "budget": 2500
+        }
+      ]
+    },
+    {
+      "path": "/search",
+      "timings": [
+        {
+          "metric": "first-contentful-paint",
+          "budget": 1200
+        },
+        {
+          "metric": "largest-contentful-paint",
+          "budget": 2000
+        },
+        {
+          "metric": "time-to-interactive",
+          "budget": 3000
+        }
+      ]
+    }
+  ]
+}

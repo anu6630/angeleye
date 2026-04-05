@@ -1,0 +1,51 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://localhost:3000/feed",
+        "http://localhost:3000/notebooks",
+        "http://localhost:3000/search",
+        "http://localhost:3000/editor"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "chromeFlags": ["--no-sandbox", "--disable-dev-shm-usage"],
+        "onlyCategories": ["performance", "accessibility", "best-practices", "seo"],
+        "preset": "desktop",
+        "throttling": {
+          "rttMs": 40,
+          "throughputKbps": 10240,
+          "cpuSlowdownMultiplier": 1,
+          "requestLatencyMs": 0,
+          "downloadThroughputKbps": 0,
+          "uploadThroughputKbps": 0
+        }
+      }
+    },
+    "assert": {
+      "preset": "lighthouse:recommended",
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["warn", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "categories:seo": ["warn", { "minScore": 0.9 }],
+        "first-contentful-paint": ["error", { "maxNumericValue": 1500 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 300 }],
+        "speed-index": ["error", { "maxNumericValue": 2500 }],
+        "time-to-interactive": ["warn", { "maxNumericValue": 3500 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    },
+    "server": {
+      "port": 9009,
+      "storage": {
+        "storageMethod": "sql",
+        "sqlDatabasePath": "./lhci.db"
+      }
+    }
+  }
+}
