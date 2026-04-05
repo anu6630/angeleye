@@ -4,7 +4,7 @@ Factory functions for creating test data.
 Factory pattern per D-03: Flexible test data generation with optional kwargs.
 All factories commit to database, refresh, and return model instances.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -294,7 +294,7 @@ def create_published_notebook_with_cells(
     Returns:
         Notebook instance with cells
     """
-    created_at = datetime.utcnow() - timedelta(days=days_ago)
+    created_at = datetime.now(timezone.utc) - timedelta(days=days_ago)
 
     notebook = create_notebook(
         db_session,
