@@ -1,0 +1,283 @@
+name: Coverage Aggregation
+
+on:
+  workflow_run:
+    workflows: ['Test Backend', 'Test Frontend']
+    types:
+      - completed
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage-aggregation:
+    name: Coverage Aggregation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-unit-coverage-report
+          path: backend-coverage
+        continue-on-error: true
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-component-coverage-report
+          path: frontend-coverage
+        continue-on-error: true
+
+      - name: Download integration coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-integration-coverage-report
+          path: integration-coverage
+        continue-on-error: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install coverage tools
+        run: |
+          pip install coverage
+
+      - name: Merge coverage reports
+        run: |
+          # Create combined coverage directory
+          mkdir -p combined-coverage
+
+          # Copy backend coverage if available
+          if [ -f backend-coverage/coverage.xml ]; then
+            cp backend-coverage/coverage.xml combined-coverage/backend-coverage.xml
+          fi
+
+          # Copy frontend coverage if available
+          if [ -f frontend-coverage/coverage-final.json ]; then
+            cp frontend-coverage/coverage-final.json combined-coverage/frontend-coverage.json
+          fi
+
+          # Copy integration coverage if available
+          if [ -f integration-coverage/coverage.xml ]; then
+            cp integration-coverage/coverage.xml combined-coverage/integration-coverage.xml
+          fi
+
+      - name: Parse coverage percentages
+        id: parse-coverage
+        run: |
+          # Parse backend coverage
+          BACKEND_LINES=0
+          BACKEND_BRANCHES=0
+          if [ -f combined-coverage/backend-coverage.xml ]; then
+            BACKEND_LINES=$(python -c "
+import xml.etree.ElementTree as ET
+tree = ET.parse('combined-coverage/backend-coverage.xml')
+root = tree.getroot()
+lines = root.attrib.get('line-rate', '0')
+print(f'{float(lines) * 100:.1f}')
+")
+            BACKEND_BRANCHES=$(python -c "
+import xml.etree.ElementTree as ET
+tree = ET.parse('combined-coverage/backend-coverage.xml')
+root = tree.getroot()
+branches = root.attrib.get('branch-rate', '0')
+print(f'{float(branches) * 100:.1f}')
+")
+          fi
+
+          # Parse frontend coverage
+          FRONTEND_LINES=0
+          FRONTEND_BRANCHES=0
+          if [ -f combined-coverage/frontend-coverage.json ]; then
+            FRONTEND_LINES=$(python -c "
+import json
+data = json.load(open('combined-coverage/frontend-coverage.json'))
+total = data.get('total', {})
+lines = total.get('lines', {}).get('pct', 0)
+print(f'{lines}')
+")
+            FRONTEND_BRANCHES=$(python -c "
+import json
+data = json.load(open('combined-coverage/frontend-coverage.json'))
+total = data.get('total', {})
+branches = total.get('branches', {}).get('pct', 0)
+print(f'{branches}')
+")
+          fi
+
+          # Calculate overall coverage
+          OVERALL_LINES=$(python -c "print(f'{$BACKEND_LINES + $FRONTEND_LINES / 2:.1f}')")
+          OVERALL_BRANCHES=$(python -c "print(f'{$BACKEND_BRANCHES + $FRONTEND_BRANCHES / 2:.1f}')")
+
+          # Save to environment
+          echo "backend_lines=$BACKEND_LINES" >> $GITHUB_OUTPUT
+          echo "backend_branches=$BACKEND_BRANCHES" >> $GITHUB_OUTPUT
+          echo "frontend_lines=$FRONTEND_LINES" >> $GITHUB_OUTPUT
+          echo "frontend_branches=$FRONTEND_BRANCHES" >> $GITHUB_OUTPUT
+          echo "overall_lines=$OVERALL_LINES" >> $GITHUB_OUTPUT
+          echo "overall_branches=$OVERALL_BRANCHES" >> $GITHUB_OUTPUT
+
+      - name: Check coverage thresholds
+        run: |
+          BACKEND_LINES=${{ steps.parse-coverage.outputs.backend_lines }}
+          BACKEND_BRANCHES=${{ steps.parse-coverage.outputs.backend_branches }}
+          FRONTEND_LINES=${{ steps.parse-coverage.outputs.frontend_lines }}
+          FRONTEND_BRANCHES=${{ steps.parse-coverage.outputs.frontend_branches }}
+          OVERALL_LINES=${{ steps.parse-coverage.outputs.overall_lines }}
+          OVERALL_BRANCHES=${{ steps.parse-coverage.outputs.overall_branches }}
+
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend" >> $GITHUB_STEP_SUMMARY
+          echo "- Lines: ${BACKEND_LINES}%" >> $GITHUB_STEP_SUMMARY
+          echo "- Branches: ${BACKEND_BRANCHES}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend" >> $GITHUB_STEP_SUMMARY
+          echo "- Lines: ${FRONTEND_LINES}%" >> $GITHUB_STEP_SUMMARY
+          echo "- Branches: ${FRONTEND_BRANCHES}%" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Overall" >> $GITHUB_STEP_SUMMARY
+          echo "- Lines: ${OVERALL_LINES}%" >> $GITHUB_STEP_SUMMARY
+          echo "- Branches: ${OVERALL_BRANCHES}%" >> $GITHUB_STEP_SUMMARY
+
+          # Check thresholds (80% lines, 70% branches)
+          THRESHOLD_LINES=80
+          THRESHOLD_BRANCHES=70
+
+          if (( $(echo "$OVERALL_LINES < $THRESHOLD_LINES" | bc -l) )); then
+            echo "❌ Overall line coverage (${OVERALL_LINES}%) below threshold (${THRESHOLD_LINES}%)"
+            exit 1
+          fi
+
+          if (( $(echo "$OVERALL_BRANCHES < $THRESHOLD_BRANCHES" | bc -l) )); then
+            echo "❌ Overall branch coverage (${OVERALL_BRANCHES}%) below threshold (${THRESHOLD_BRANCHES}%)"
+            exit 1
+          fi
+
+          echo "✅ Coverage thresholds met!"
+
+      - name: Generate coverage badge
+        run: |
+          # Create coverage badge
+          OVERALL_LINES=${{ steps.parse-coverage.outputs.overall_lines }}
+          COLOR="brightgreen"
+          if (( $(echo "$OVERALL_LINES < 80" | bc -l) )); then
+            COLOR="yellow"
+          fi
+          if (( $(echo "$OVERALL_LINES < 70" | bc -l) )); then
+            COLOR="red"
+          fi
+
+          echo "Coverage: ${OVERALL_LINES}%"
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const backendLines = '${{ steps.parse-coverage.outputs.backend_lines }}';
+            const backendBranches = '${{ steps.parse-coverage.outputs.backend_branches }}';
+            const frontendLines = '${{ steps.parse-coverage.outputs.frontend_lines }}';
+            const frontendBranches = '${{ steps.parse-coverage.outputs.frontend_branches }}';
+            const overallLines = '${{ steps.parse-coverage.outputs.overall_lines }}';
+            const overallBranches = '${{ steps.parse-coverage.outputs.overall_branches }}';
+
+            let body = '## Coverage Report\n\n';
+            body += '### Backend\n';
+            body += `- Lines: ${backendLines}%\n`;
+            body += `- Branches: ${backendBranches}%\n\n`;
+            body += '### Frontend\n';
+            body += `- Lines: ${frontendLines}%\n`;
+            body += `- Branches: ${frontendBranches}%\n\n`;
+            body += '### Overall\n';
+            body += `- Lines: **${overallLines}%**\n`;
+            body += `- Branches: **${overallBranches}%**\n\n`;
+
+            const thresholdLines = 80;
+            const thresholdBranches = 70;
+
+            if (parseFloat(overallLines) < thresholdLines || parseFloat(overallBranches) < thresholdBranches) {
+              body += '### ⚠️ Coverage Below Threshold\n\n';
+              body += `Required: ${thresholdLines}% lines, ${thresholdBranches}% branches\n`;
+              body += 'Please increase coverage before merging.\n';
+            } else {
+              body += '### ✅ Coverage Thresholds Met\n\n';
+            }
+
+            body += '\n📊 View detailed reports in the workflow artifacts.';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Upload combined coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combined-coverage-report
+          path: combined-coverage/
+          retention-days: 7
+
+      - name: Generate HTML coverage report
+        run: |
+          # Create simple HTML report
+          cat > coverage-report.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Coverage Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .metric { margin: 10px 0; padding: 10px; border-radius: 5px; }
+              .good { background: #d4edda; }
+              .warning { background: #fff3cd; }
+              .bad { background: #f8d7da; }
+            </style>
+          </head>
+          <body>
+            <h1>Coverage Report</h1>
+            <h2>Backend</h2>
+            <div class="metric $([ "${{ steps.parse-coverage.outputs.backend_lines }}" -ge 80 ] && echo "good" || echo "warning")">
+              Lines: ${{ steps.parse-coverage.outputs.backend_lines }}%
+            </div>
+            <div class="metric $([ "${{ steps.parse-coverage.outputs.backend_branches }}" -ge 70 ] && echo "good" || echo "warning")">
+              Branches: ${{ steps.parse-coverage.outputs.backend_branches }}%
+            </div>
+            <h2>Frontend</h2>
+            <div class="metric $([ "${{ steps.parse-coverage.outputs.frontend_lines }}" -ge 80 ] && echo "good" || echo "warning")">
+              Lines: ${{ steps.parse-coverage.outputs.frontend_lines }}%
+            </div>
+            <div class="metric $([ "${{ steps.parse-coverage.outputs.frontend_branches }}" -ge 70 ] && echo "good" || echo "warning")">
+              Branches: ${{ steps.parse-coverage.outputs.frontend_branches }}%
+            </div>
+            <h2>Overall</h2>
+            <div class="metric $([ "${{ steps.parse-coverage.outputs.overall_lines }}" -ge 80 ] && echo "good" || echo "bad")">
+              Lines: ${{ steps.parse-coverage.outputs.overall_lines }}%
+            </div>
+            <div class="metric $([ "${{ steps.parse-coverage.outputs.overall_branches }}" -ge 70 ] && echo "good" || echo "bad")">
+              Branches: ${{ steps.parse-coverage.outputs.overall_branches }}%
+            </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-html-report
+          path: coverage-report.html
+          retention-days: 7
