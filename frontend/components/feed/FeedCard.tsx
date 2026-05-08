@@ -11,6 +11,7 @@ import { ForkButton } from '@/components/social/ForkButton';
 import { EngagementMetrics } from '@/components/social/EngagementMetrics';
 import { Button } from '@/components/ui/button';
 import { NotebookResponse } from '@/lib/api-client';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface FeedCardProps {
   notebook: NotebookResponse;
@@ -113,11 +114,7 @@ export function FeedCard({ notebook }: FeedCardProps) {
             <div className="flex flex-col">
               <p className="text-sm font-bold leading-none tracking-tight">@{username}</p>
               <p className="text-[11px] font-medium text-muted-foreground mt-1 uppercase tracking-wider">
-                {new Date(created_at).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+                {formatRelativeTime(created_at)}
               </p>
             </div>
           </div>
