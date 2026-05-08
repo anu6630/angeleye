@@ -54,18 +54,29 @@ export function LikeButton({
 
   return (
     <Button
-      variant={liked ? 'default' : 'ghost'}
+      variant="ghost"
       size="sm"
       onClick={handleToggle}
       disabled={isLoading}
+      className={`group/like flex items-center gap-2 rounded-full transition-all duration-300 ${
+        liked 
+          ? 'text-red-500 hover:bg-red-500/10 hover:text-red-600' 
+          : 'text-muted-foreground hover:bg-red-500/10 hover:text-red-500'
+      }`}
     >
-      {isLoading ? (
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-      ) : (
-        <Heart className={`h-4 w-4 mr-2 ${liked ? 'fill-current' : ''}`} />
-      )}
-      {showCount && (
-        <span className="ml-1">{displayCount}</span>
+      <div className="p-2 rounded-full transition-colors duration-300">
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Heart 
+            className={`h-5 w-5 transition-all duration-300 ${
+              liked ? 'fill-current scale-110' : 'group-hover/like:scale-110'
+            }`} 
+          />
+        )}
+      </div>
+      {showCount && displayCount > 0 && (
+        <span className="text-sm font-semibold tabular-nums pr-1">{displayCount}</span>
       )}
     </Button>
   );

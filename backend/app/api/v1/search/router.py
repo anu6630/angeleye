@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("")
 def search_notebooks(
-    q: str = Query(..., min_length=1, max_length=100, description="Search query"),
+    q: str = Query(None, min_length=0, max_length=100, description="Search query"),
     tab: str = Query("all", regex="^(all|originals|forks)$", description="Filter by fork status"),
     limit: int = Query(50, le=100, description="Max results to return"),
     db: Session = Depends(get_db_session)
@@ -26,7 +26,8 @@ def search_notebooks(
     """
     # Execute search
     search_service = SearchService(db)
-    results = search_service.search_notebooks(q, tab, limit)
+    query_str = q or ""
+    results = search_service.search_notebooks(query_str, tab, limit)
 
     notebook_ids = results["notebook_ids"]
     total = results["total"]
@@ -47,7 +48,7 @@ def search_notebooks(
             "notebooks": trending_notebooks,
             "total": 0,
             "empty_state": True,
-            "message": f"No results for '{q}'. Showing trending notebooks instead.",
+            "message": f"No results for '{query_str}'. Showing trending notebooks instead." if query_str else "Showing trending notebooks.",
             "facet_distribution": {},
             "from_meilisearch": results["from_meilisearch"]
         }

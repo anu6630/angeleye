@@ -114,6 +114,7 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - NOTEBOOK_TEMP_VOLUME=time_notebook_temp
+      - MEILISEARCH_URL=http://meilisearch:7700
     depends_on:
       postgres:
         condition: service_healthy

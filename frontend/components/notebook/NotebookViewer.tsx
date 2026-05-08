@@ -376,7 +376,7 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
                 <iframe
                   srcDoc={outputsOnlyHtml(outputHtml!)}
                   className="w-full border-0"
-                  style={{ minHeight: '200px' }}
+                  style={{ minHeight: '80px' }}
                   onLoad={(e) => {
                     resizeIframeToContent(e.currentTarget, 24);
                   }}
