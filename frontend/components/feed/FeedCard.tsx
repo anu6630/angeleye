@@ -106,6 +106,7 @@ export function FeedCard({ notebook }: FeedCardProps) {
             comments={comment_count}
             views={view_count}
             variant="compact"
+            hideLikes={true}
           />
         </div>
 
@@ -115,7 +116,7 @@ export function FeedCard({ notebook }: FeedCardProps) {
         {/* Action buttons row */}
         <div className="flex items-center justify-between w-full px-1">
           <div className="flex items-center gap-6">
-            <LikeButton notebookId={id} likeCount={like_count} showCount={false} />
+            <LikeButton notebookId={id} likeCount={like_count} showCount={true} />
             <Link href={`/notebooks/${id}#comments`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group/comment">
               <div className="p-2 rounded-full group-hover/comment:bg-muted transition-colors">
                 <MessageCircle className="h-5 w-5" />

@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSocialStore } from '@/stores/social-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { savePendingAction } from '@/lib/pending-auth-action';
 
 interface LikeButtonProps {
   notebookId: number;
@@ -18,6 +21,9 @@ export function LikeButton({
 }: LikeButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toggleLike, isLiked, notebookLikeCounts } = useSocialStore();
+  const { isAuthenticated } = useAuthStore();
+  const pathname = usePathname();
+  const router = useRouter();
 
   const liked = isLiked(notebookId);
   const storedCount = notebookLikeCounts[notebookId] || 0;
@@ -25,6 +31,16 @@ export function LikeButton({
 
   const handleToggle = async () => {
     if (isLoading) return;
+
+    if (!isAuthenticated) {
+      savePendingAction({
+        type: 'like',
+        notebookId,
+        returnPath: pathname || `/notebooks/${notebookId}`,
+      });
+      router.push('/login');
+      return;
+    }
 
     setIsLoading(true);
     try {

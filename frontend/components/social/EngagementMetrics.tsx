@@ -11,6 +11,7 @@ interface EngagementMetricsProps {
   variant?: 'full' | 'compact';
   className?: string;
   showZeroState?: boolean;
+  hideLikes?: boolean;
 }
 
 export function EngagementMetrics({
@@ -20,6 +21,7 @@ export function EngagementMetrics({
   variant = 'compact',
   className,
   showZeroState = false,
+  hideLikes = false,
 }: EngagementMetricsProps) {
   const totalEngagement = likes + comments + views;
 
@@ -41,7 +43,7 @@ export function EngagementMetrics({
   if (variant === 'compact') {
     return (
       <div className={cn('flex items-center gap-4 text-sm text-muted-foreground', className)}>
-        {likes > 0 && (
+        {!hideLikes && likes > 0 && (
           <div className="flex items-center gap-1" title={`${likes} likes`}>
             <Heart className="h-4 w-4" />
             <span>{likes}</span>
@@ -66,7 +68,7 @@ export function EngagementMetrics({
   // Full variant (desktop/detail page): Icons + numbers + labels
   return (
     <div className={cn('flex items-center gap-6 text-sm', className)}>
-      {likes > 0 && (
+      {!hideLikes && likes > 0 && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <Heart className="h-4 w-4" />
           <span>{likes}</span>
