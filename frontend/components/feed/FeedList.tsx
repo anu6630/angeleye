@@ -76,7 +76,15 @@ export function FeedList() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+    <div className="container mx-auto max-w-2xl px-4 py-8 md:py-10">
+      <header className="mb-10 space-y-2 text-center">
+        <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">Feed</h1>
+        <p className="text-muted-foreground leading-relaxed">
+          Published notebooks from people you follow and what&apos;s trending. Open a card to read the
+          full render, fork, or join the thread.
+        </p>
+      </header>
+
       {/* Empty state */}
       {notebooks.length === 0 && !isLoading && (
         <div className="text-center py-12">
@@ -88,7 +96,11 @@ export function FeedList() {
       )}
 
       {/* Feed grid - Instagram style (3 columns on lg, 2 on md, 1 on sm) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div
+        role="feed"
+        aria-label="Notebook feed"
+        className="flex flex-col gap-8"
+      >
         {notebooks.map((notebook: any) => (
           <FeedCard key={notebook.id} notebook={notebook} />
         ))}

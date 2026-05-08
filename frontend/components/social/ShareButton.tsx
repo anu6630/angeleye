@@ -7,9 +7,18 @@ import { Button } from '@/components/ui/button';
 interface ShareButtonProps {
   title: string;
   url?: string;
+  variant?: 'default' | 'outline' | 'ghost' | 'secondary';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  className?: string;
 }
 
-export function ShareButton({ title, url: propUrl }: ShareButtonProps) {
+export function ShareButton({
+  title,
+  url: propUrl,
+  variant = 'outline',
+  size = 'sm',
+  className,
+}: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
@@ -44,7 +53,7 @@ export function ShareButton({ title, url: propUrl }: ShareButtonProps) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleShare}>
+    <Button variant={variant} size={size} onClick={handleShare} className={className}>
       {copied ? (
         <Check className="h-4 w-4 text-green-600" />
       ) : (

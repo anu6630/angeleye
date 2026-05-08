@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { GitBranch, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient, NotebookResponse } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
+import { savePendingAction } from '@/lib/pending-auth-action';
 
 interface ForkButtonProps {
   notebookId: number;
@@ -24,6 +26,7 @@ interface ForkButtonProps {
   variant?: 'default' | 'outline' | 'ghost' | 'secondary';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   showText?: boolean;
+  className?: string;
 }
 
 export function ForkButton({
@@ -33,13 +36,25 @@ export function ForkButton({
   variant = 'default',
   size = 'sm',
   showText = true,
+  className,
 }: ForkButtonProps) {
   const [isForking, setIsForking] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuthStore();
   const { toast } = useToast();
 
   const handleForkClick = () => {
+    if (!isAuthenticated) {
+      savePendingAction({
+        type: 'fork',
+        notebookId,
+        returnPath: pathname || `/notebooks/${notebookId}`,
+      });
+      router.push('/login');
+      return;
+    }
     setShowDialog(true);
   };
 
@@ -81,6 +96,7 @@ export function ForkButton({
         size={size}
         onClick={handleForkClick}
         disabled={isForking}
+        className={className}
       >
         {isForking ? (
           <Loader2 className="h-4 w-4 animate-spin" />
