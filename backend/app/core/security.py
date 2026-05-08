@@ -3,9 +3,13 @@ from typing import Optional, Union, Any
 from jose import JWTError, jwt
 from fastapi import Request, HTTPException, status
 from cryptography.fernet import Fernet
+from passlib.context import CryptContext
 import base64
 import hashlib
 from app.core.config import settings
+
+# Password hashing context (using argon2)
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # Fernet for token encryption (SEC-06)
 # Generate a proper Fernet key from the encryption key
@@ -52,8 +56,15 @@ def verify_token(token: str, token_type: str = "access") -> Optional[str]:
 
 
 async def get_current_user_id(request: Request) -> Optional[int]:
-    """Get current user ID from httpOnly cookie (D-10, D-12)"""
+    """Get current user ID from httpOnly cookie or Authorization header (D-10, D-12)"""
+    # First try to get token from cookie
     access_token = request.cookies.get("access_token")
+
+    # If no cookie, try Authorization header
+    if not access_token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            access_token = auth_header.replace("Bearer ", "")
 
     if not access_token:
         return None
@@ -81,3 +92,13 @@ def encrypt_token(token: str) -> str:
 def decrypt_token(encrypted_token: str) -> str:
     """Decrypt OAuth token (SEC-06, D-04, D-28)"""
     return cipher_suite.decrypt(encrypted_token.encode()).decode()
+
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against a hash"""
+    return pwd_context.verify(plain_password, hashed_password)

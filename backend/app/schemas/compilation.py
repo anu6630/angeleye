@@ -1,17 +1,19 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional
 
 
 class CompilationRequest(BaseModel):
     """Request schema for notebook compilation"""
     notebook_id: int = Field(..., description="ID of notebook to compile")
-    dataset_id: Optional[int] = Field(None, description="Optional dataset ID to use")
+    dataset_id: Optional[int] = Field(None, description="Optional dataset ID to use (legacy single asset)")
+    dataset_ids: Optional[List[int]] = Field(None, description="Optional list of asset IDs (datasets/images) to mount")
 
 
 class AsyncCompilationRequest(BaseModel):
     """Request schema for async notebook compilation"""
     notebook_id: int
     dataset_id: Optional[int] = None
+    dataset_ids: Optional[List[int]] = None
 
 
 class CompilationResponse(BaseModel):
@@ -34,6 +36,7 @@ class PublishRequest(BaseModel):
     """Request schema for publishing compiled notebook"""
     notebook_id: int
     output_key: str = Field(..., description="S3 key of compiled output")
+    dataset_id: Optional[int] = None  # Persist dataset association on the notebook record
     auto_invalidate: bool = True  # Invalidate cache for old version
 
 

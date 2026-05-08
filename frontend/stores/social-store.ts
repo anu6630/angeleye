@@ -283,9 +283,13 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
   initializeFollows: async () => {
     try {
       const user = await apiClient.getCurrentUser();
+      // Backend currently exposes follow counts, not full following user lists.
       const following = await apiClient.getUserFollowing(user.id);
       set({
-        followingIds: new Set(following.map((u) => u.id)),
+        followingIds: new Set(),
+        followingCount: {
+          [user.id]: following.following_count,
+        },
       });
     } catch (error) {
       console.error('Failed to initialize follows:', error);

@@ -23,13 +23,22 @@ export default function PublicProfilePage() {
 
       try {
         // Fetch public profile (no auth required per AUTH-04)
-        const [profileData, statsData] = await Promise.all([
-          apiClient.getPublicProfile(username),
-          apiClient.getProfileStats().catch(() => ({ published_notebook_count: 0, likes_received_count: 0 })),
-        ]);
+        const profileData = await apiClient.getPublicProfile(username);
 
-        setUser(profileData as unknown as User);
-        setStats(statsData);
+        setUser({
+          id: 0,
+          email: '',
+          username: profileData.username,
+          is_active: true,
+          is_verified: true,
+          bio: profileData.bio ?? null,
+          avatar_url: profileData.avatar_url ?? null,
+          created_at: profileData.created_at,
+        });
+        setStats({
+          published_notebook_count: profileData.published_notebook_count,
+          likes_received_count: profileData.likes_received_count,
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load profile');
       } finally {

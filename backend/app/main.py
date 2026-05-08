@@ -6,20 +6,21 @@ FastAPI backend for the NotebookSocial platform.
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.core.exceptions import APIError
-from app.api.v1.auth import router as auth_router
-from app.api.v1.profiles import router as profiles_router
-from app.api.v1.notebooks import router as notebooks_router
-from app.api.v1.likes import router as likes_router
-from app.api.v1.comments import router as comments_router
-from app.api.v1.datasets import datasets_router
-from app.api.v1.compilation import compilation_router
-from app.api.v1.follows import router as follows_router
-from app.api.v1.search import router as search_router
-from app.api.v1.feed import router as feed_router
+from app.api.v1.auth.router import router as auth_router
+from app.api.v1.profiles.router import router as profiles_router
+from app.api.v1.notebooks.router import router as notebooks_router
+from app.api.v1.likes.router import router as likes_router
+from app.api.v1.comments.router import router as comments_router
+from app.api.v1.datasets.router import router as datasets_router
+from app.api.v1.compilation.router import router as compilation_router
+from app.api.v1.follows.router import router as follows_router
+from app.api.v1.search.router import router as search_router
+from app.api.v1.feed.router import router as feed_router
 from app.core.config import settings
 from app.core.cache import cache
 
@@ -42,6 +43,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Session middleware for OAuth
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
 # Include routers
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
@@ -79,6 +83,27 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
             "error_code": "RATE_LIMIT_EXCEEDED"
         }
     )
+
+# Ensure object-storage buckets exist on startup
+@app.on_event("startup")
+async def ensure_storage_buckets():
+    """Create MinIO/S3 buckets if they don't already exist."""
+    try:
+        from app.services.storage_service import StorageService
+        storage = StorageService()
+        for bucket in (
+            settings.DATASETS_BUCKET,
+            settings.NOTEBOOKS_BUCKET,
+            settings.BANNERS_BUCKET,
+            settings.AVATARS_BUCKET,
+        ):
+            try:
+                storage.ensure_bucket_exists(bucket)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
 
 # Health check endpoint
 @app.get("/health")

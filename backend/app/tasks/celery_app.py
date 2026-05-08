@@ -43,7 +43,7 @@ celery_app.conf.update(
 
     # Task routing (future: separate queues for different task types)
     task_routes={
-        'app.tasks.compilation_tasks.compile_notebook_task': {'queue': 'compilation'},
+        'compile_notebook_task': {'queue': 'compilation'},
     },
 
     # Task execution

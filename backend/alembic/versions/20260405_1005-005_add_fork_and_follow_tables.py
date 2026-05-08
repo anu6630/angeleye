@@ -1,7 +1,7 @@
 """add fork and follow tables
 
-Revision ID: 005
-Revises: 004
+Revision ID: 20260405_1005
+Revises: 20260404_1002
 Create Date: 2026-04-05 10:05:00.000000
 
 Adds:
@@ -16,8 +16,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '005'
-down_revision = '004'
+revision = '20260405_1005'
+down_revision = '20260404_1002'
 branch_labels = None
 depends_on = None
 

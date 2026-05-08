@@ -74,3 +74,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json

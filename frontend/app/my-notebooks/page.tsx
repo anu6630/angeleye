@@ -11,29 +11,50 @@ import { apiClient, NotebookResponse } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function MyNotebooksPage() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, fetchUser } = useAuthStore();
   const router = useRouter();
   const [notebooks, setNotebooks] = useState<NotebookResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    console.log('My Notebooks page mounted, checking auth state...');
+    console.log('isAuthenticated:', isAuthenticated);
+
     if (!isAuthenticated) {
-      router.push('/login');
+      console.log('Not authenticated, fetching user...');
+      fetchUser().catch(err => {
+        console.error('Failed to fetch user:', err);
+        router.push('/login');
+      });
       return;
     }
 
     loadNotebooks();
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, mounted, router, fetchUser]);
 
   const loadNotebooks = async () => {
+    console.log('Loading notebooks...');
+    console.log('Authentication state:', isAuthenticated);
+    console.log('Current cookies:', document.cookie);
     try {
       setIsLoading(true);
       setError(null);
       const data = await apiClient.getUserNotebooks();
-      setNotebooks(data);
+      const list = data.notebooks ?? [];
+      console.log('Notebooks loaded:', list);
+      setNotebooks(list);
     } catch (err: any) {
+      console.error('Failed to load notebooks:', err);
+      console.error('Error stack:', err.stack);
       setError(err.message || 'Failed to load notebooks');
     } finally {
       setIsLoading(false);
@@ -61,21 +82,20 @@ export default function MyNotebooksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-lg font-semibold">My Notebooks</h1>
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background">
+      <div className="container mx-auto max-w-4xl px-4 py-8 md:py-10">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-display text-3xl font-semibold tracking-tight">My notebooks</h1>
+            <p className="mt-1 text-muted-foreground">Drafts and published work in one place.</p>
+          </div>
           <Link href="/notebooks/new">
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              New Notebook
+            <Button size="sm" className="rounded-full">
+              <Plus className="mr-2 h-4 w-4" />
+              New notebook
             </Button>
           </Link>
         </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
         {error && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription className="flex items-center justify-between">

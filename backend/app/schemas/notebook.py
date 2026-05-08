@@ -45,10 +45,16 @@ class NotebookResponse(BaseModel):
     is_archived: Optional[bool] = False
     parent_id: Optional[int] = None
     root_id: Optional[int] = None
+    output_url: Optional[str] = None
+    output_s3_key: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     like_count: int = 0
     comment_count: int = 0
+    username: Optional[str] = None
+    avatar_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    banner_thumbnail_url: Optional[str] = None
     cells: Optional[List[NotebookCell]] = None
     fork_chain: Optional[List[ForkChainResponse]] = None
 
@@ -68,6 +74,7 @@ class NotebookListResponse(BaseModel):
     root_id: Optional[int] = None
     like_count: int = 0
     comment_count: int = 0
+    banner_thumbnail_url: Optional[str] = None
     created_at: datetime
 
     class Config:

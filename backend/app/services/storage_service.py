@@ -59,8 +59,8 @@ class StorageService:
             key,
             ExtraArgs={
                 'ContentType': content_type,
-                # SEC-07: Server-side encryption for data at rest
-                'ServerSideEncryption': 'AES256'
+                # Note: ServerSideEncryption disabled for MinIO compatibility
+                # For production AWS S3, re-enable: 'ServerSideEncryption': 'AES256'
             }
         )
         return key
@@ -92,7 +92,7 @@ class StorageService:
             key,
             ExtraArgs={
                 'ContentType': content_type,
-                'ServerSideEncryption': 'AES256'
+                # Note: ServerSideEncryption disabled for MinIO compatibility
             }
         )
         return key
@@ -226,3 +226,38 @@ class StorageService:
             return True
         except ClientError:
             return False
+
+    def download_file_to_path(self, bucket: str, key: str, local_path: str) -> None:
+        """
+        Download a file from S3/MinIO to a local path.
+
+        Uses direct SDK access (not presigned URL) for server-to-server transfers,
+        so there is no expiry risk during long compilation queues.
+
+        Args:
+            bucket: S3 bucket name
+            key: S3 object key
+            local_path: Local filesystem path to write the file to
+        """
+        try:
+            self.s3_client.download_file(bucket, key, local_path)
+        except ClientError as e:
+            logger.error(f"Failed to download file {key} from {bucket}: {e}")
+            raise Exception(f"Failed to download dataset: {e}")
+
+    def ensure_bucket_exists(self, bucket: str) -> None:
+        """
+        Ensure a bucket exists, creating it if it does not.
+
+        Args:
+            bucket: S3 bucket name
+        """
+        if not self.check_bucket_exists(bucket):
+            try:
+                logger.info(f"Creating bucket {bucket}")
+                self.s3_client.create_bucket(Bucket=bucket)
+            except ClientError as e:
+                logger.error(f"Failed to create bucket {bucket}: {e}")
+                # Don't raise if it's already exists (race condition)
+                if e.response['Error']['Code'] != 'BucketAlreadyOwnedByYou':
+                    raise

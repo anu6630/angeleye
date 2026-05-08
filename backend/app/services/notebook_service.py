@@ -10,6 +10,7 @@ from app.models.user import User
 from app.models.like import Like
 from app.models.comment import Comment
 from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
+from app.services.avatar_service import build_avatar_url
 
 logger = logging.getLogger(__name__)
 
@@ -257,15 +258,31 @@ class NotebookService:
             .scalar()
         ) or 0
 
+        username = notebook.user.username if notebook.user else None
+        avatar_url = (
+            build_avatar_url(notebook.user.username, notebook.user.profile)
+            if notebook.user and notebook.user.profile
+            else None
+        )
+
+        from app.services.banner_service import build_banner_urls
+        banner_url, banner_thumbnail_url = build_banner_urls(notebook)
+
         return NotebookResponse(
             id=notebook.id,
             title=notebook.title,
             user_id=notebook.user_id,
             is_published=notebook.is_published,
+            output_url=notebook.output_url,
+            output_s3_key=notebook.output_s3_key,
             created_at=notebook.created_at,
             updated_at=notebook.updated_at,
             like_count=like_count,
             comment_count=comment_count,
+            username=username,
+            avatar_url=avatar_url,
+            banner_url=banner_url,
+            banner_thumbnail_url=banner_thumbnail_url,
             cells=[{
                 'id': cell.id,
                 'cell_type': cell.cell_type,

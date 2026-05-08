@@ -1,4 +1,4 @@
-fastapi==0.135.3
+fastapi==0.128.0
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.48
 alembic==1.18.4
@@ -6,7 +6,7 @@ psycopg2-binary==2.9.11
 python-jose[cryptography]==3.5.0
 authlib==1.6.9
 httpx==0.28.1
-python-multipart==0.0.22
+python-multipart==0.0.20
 pydantic==2.12.5
 pydantic-settings==2.7.1
 slowapi==0.1.9
@@ -34,3 +34,6 @@ docker==7.1.0
 nbconvert==7.17.0
 # Phase 4: Search (DISC-03, DISC-04: Meilisearch for fast, typo-tolerant search)
 meilisearch==0.31.5
+itsdangerous==2.1.2
+passlib==1.7.4
+email-validator==2.1.1

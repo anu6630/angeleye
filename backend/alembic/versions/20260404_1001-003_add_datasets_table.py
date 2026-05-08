@@ -1,7 +1,7 @@
 """add datasets table
 
-Revision ID: 003
-Revises: 002
+Revision ID: 20260404_1001
+Revises: 20260404_1000
 Create Date: 2026-04-04
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '003'
-down_revision = '002'
+revision = '20260404_1001'
+down_revision = '20260404_1000'
 branch_labels = None
 depends_on = None
 

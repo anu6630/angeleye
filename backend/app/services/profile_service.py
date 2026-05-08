@@ -57,6 +57,11 @@ class ProfileService:
 
         if profile_data.avatar_url is not None:
             profile.avatar_url = str(profile_data.avatar_url) if profile_data.avatar_url else None
+            if profile_data.avatar_url:
+                profile.avatar_s3_key = None
+                profile.avatar_thumbnail_s3_key = None
+                profile.avatar_uploaded_at = None
+                profile.avatar_content_type = None
         if profile_data.bio is not None:
             profile.bio = profile_data.bio
 

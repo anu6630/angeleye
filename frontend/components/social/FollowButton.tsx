@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useSocialStore } from '@/stores/social-store';
-import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
+import { savePendingAction } from '@/lib/pending-auth-action';
 
 interface FollowButtonProps {
   userId: number;
@@ -27,6 +29,9 @@ export function FollowButton({
   const [isLoading, setIsLoading] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const { toggleFollow, isFollowing: checkIsFollowing } = useSocialStore();
+  const { isAuthenticated } = useAuthStore();
+  const pathname = usePathname();
+  const router = useRouter();
   const { toast } = useToast();
 
   // Initialize follow state from store
@@ -36,6 +41,16 @@ export function FollowButton({
 
   const handleToggleFollow = async () => {
     if (isLoading) return;
+
+    if (!isAuthenticated) {
+      savePendingAction({
+        type: 'follow',
+        targetUserId: userId,
+        returnPath: pathname || '/feed',
+      });
+      router.push('/login');
+      return;
+    }
 
     const wasFollowing = isFollowing;
     setIsLoading(true);

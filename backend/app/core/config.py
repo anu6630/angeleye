@@ -48,6 +48,8 @@ class Settings(BaseSettings):
 
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
+    ENABLE_TEST_LOGIN: bool = False
 
     # Storage (STOR-01: Datasets stored in MinIO, STOR-03: Outputs stored in MinIO/S3)
     MINIO_ENDPOINT: str = "http://localhost:9000"
@@ -55,6 +57,8 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str = "minioadmin"
     DATASETS_BUCKET: str = "datasets"
     NOTEBOOKS_BUCKET: str = "notebooks"
+    BANNERS_BUCKET: str = "banners"
+    AVATARS_BUCKET: str = "avatars"
 
     # AWS S3 (production)
     AWS_ACCESS_KEY_ID: str = ""

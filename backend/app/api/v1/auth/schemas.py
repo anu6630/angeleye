@@ -1,6 +1,24 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional
 from datetime import datetime
+
+class RegisterRequest(BaseModel):
+    """Request for email/password registration"""
+    email: EmailStr = Field(..., description="User email")
+    password: str = Field(..., min_length=8, max_length=100, description="Password (min 8 characters)")
+    username: str = Field(..., min_length=3, max_length=50, description="Username")
+
+class LoginRequest(BaseModel):
+    """Request for email/password login"""
+    email: EmailStr = Field(..., description="User email")
+    password: str = Field(..., description="Password")
+
+class RegisterResponse(BaseModel):
+    """Response for successful registration"""
+    user_id: int
+    username: str
+    email: str
+    message: str = "Registration successful"
 
 class OAuthLoginResponse(BaseModel):
     """Response for initiating OAuth login"""

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProfileCard } from '@/components/profile/ProfileCard';
 import { ProfileEditor } from '@/components/profile/ProfileEditor';
-import { User } from '@/lib/api-client';
+import { AvatarCropData, User } from '@/lib/api-client';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
 import { Loader2, AlertCircle, Edit2 } from 'lucide-react';
@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function MyProfilePage() {
   const router = useRouter();
-  const { user: authUser, isAuthenticated, fetchUser, logout } = useAuthStore();
+  const { isAuthenticated, fetchUser, logout } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<{ published_notebook_count: number; likes_received_count: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +63,18 @@ export default function MyProfilePage() {
     }
   };
 
+  const handleUploadAvatar = async (payload: { file: File; cropData: AvatarCropData }) => {
+    await apiClient.uploadMyAvatar(payload.file, payload.cropData);
+    await loadProfile();
+    await fetchUser();
+  };
+
+  const handleDeleteAvatar = async () => {
+    await apiClient.deleteMyAvatar();
+    await loadProfile();
+    await fetchUser();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -108,6 +120,8 @@ export default function MyProfilePage() {
             currentAvatarUrl={user.avatar_url}
             currentBio={user.bio}
             onUpdate={handleUpdateProfile}
+            onUploadAvatar={handleUploadAvatar}
+            onDeleteAvatar={handleDeleteAvatar}
             onCancel={() => setIsEditing(false)}
           />
         ) : (

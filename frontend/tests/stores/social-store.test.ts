@@ -209,17 +209,15 @@ describe('social-store', () => {
 
   it('initializes follows from API', async () => {
     vi.mocked(apiClient.getCurrentUser).mockResolvedValue({ id: 1 })
-    vi.mocked(apiClient.getUserFollowing).mockResolvedValue([
-      { id: 123, username: 'user1' },
-      { id: 456, username: 'user2' },
-    ])
+    vi.mocked(apiClient.getUserFollowing).mockResolvedValue({ following_count: 2 })
 
     const state = useSocialStore.getState()
     await state.initializeFollows()
 
     // Get fresh state after async operation
     const newState = useSocialStore.getState()
-    expect(newState.followingIds).toEqual(new Set([123, 456]))
+    expect(newState.followingIds).toEqual(new Set())
+    expect(newState.followingCount[1]).toBe(2)
   })
 
   it('resets state', () => {

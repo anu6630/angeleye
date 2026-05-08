@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, User, FileText, ImageIcon, Edit2, X } from 'lucide-react';
+import { Loader2, User, FileText, Edit2, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { AvatarUploader } from './AvatarUploader';
+import { AvatarCropData } from '@/lib/api-client';
 
 const profileUpdateSchema = z.object({
   username: z
@@ -18,7 +20,6 @@ const profileUpdateSchema = z.object({
     .max(50, 'Username must be at most 50 characters')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
     .optional(),
-  avatar_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   bio: z.string().max(500, 'Bio must be at most 500 characters').optional(),
 });
 
@@ -29,6 +30,8 @@ interface ProfileEditorProps {
   currentAvatarUrl?: string | null;
   currentBio?: string | null;
   onUpdate: (data: ProfileUpdateData) => Promise<void>;
+  onUploadAvatar: (payload: { file: File; cropData: AvatarCropData }) => Promise<void>;
+  onDeleteAvatar: () => Promise<void>;
   onCancel: () => void;
 }
 
@@ -37,6 +40,8 @@ export function ProfileEditor({
   currentAvatarUrl,
   currentBio,
   onUpdate,
+  onUploadAvatar,
+  onDeleteAvatar,
   onCancel
 }: ProfileEditorProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +55,6 @@ export function ProfileEditor({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
       username: currentUsername,
-      avatar_url: currentAvatarUrl || '',
       bio: currentBio || '',
     },
   });
@@ -62,7 +66,6 @@ export function ProfileEditor({
     try {
       await onUpdate({
         username: data.username || currentUsername,
-        avatar_url: data.avatar_url || undefined,
         bio: data.bio || undefined,
       });
     } catch (err) {
@@ -101,23 +104,38 @@ export function ProfileEditor({
             )}
           </div>
 
-          {/* Avatar URL */}
+          {/* Avatar */}
           <div className="space-y-2">
-            <Label htmlFor="avatar_url" className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              Avatar URL
+            <Label className="flex items-center gap-2">
+              Profile photo
             </Label>
-            <Input
-              id="avatar_url"
-              type="url"
-              defaultValue={currentAvatarUrl || ''}
-              {...register('avatar_url')}
+            <AvatarUploader
+              username={currentUsername}
+              avatarUrl={currentAvatarUrl}
               disabled={isLoading}
-              placeholder="https://example.com/avatar.jpg"
+              uploading={isLoading}
+              onUpload={async ({ file, crop }) => {
+                const cropData: AvatarCropData = {
+                  crop_x: Math.round(crop.x),
+                  crop_y: Math.round(crop.y),
+                  crop_size: Math.round(Math.min(crop.width, crop.height)),
+                };
+                setIsLoading(true);
+                try {
+                  await onUploadAvatar({ file, cropData });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              onRemove={async () => {
+                setIsLoading(true);
+                try {
+                  await onDeleteAvatar();
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
             />
-            {errors.avatar_url && (
-              <p className="text-sm text-destructive">{errors.avatar_url.message}</p>
-            )}
           </div>
 
           {/* Bio */}

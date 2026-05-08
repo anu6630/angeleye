@@ -1,7 +1,7 @@
 """add view_count to notebooks
 
-Revision ID: 006_add_view_count
-Revises: 005_add_fork_and_follow_tables
+Revision ID: 20260405_1010
+Revises: 20260405_1005
 Create Date: 2026-04-05 10:10:00
 
 """
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '006_add_view_count'
-down_revision = '005_add_fork_and_follow_tables'
+revision = '20260405_1010'
+down_revision = '20260405_1005'
 branch_labels = None
 depends_on = None
 

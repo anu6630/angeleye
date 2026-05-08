@@ -9,5 +9,5 @@ import { describe, it, expect } from 'vitest'
 describe('Auth Components', () => {
   it('placeholder test', () => {
     expect(true).toBe(true)
-  }
+  })
 })

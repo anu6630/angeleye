@@ -9,7 +9,7 @@ interface AuthState {
   pendingUserId: string | null;
   loginWithGoogle: () => void;
   loginWithFacebook: () => void;
-  completeProfile: (username: string, avatarUrl?: string, bio?: string) => Promise<void>;
+  completeProfile: (username: string, bio?: string) => Promise<void>;
   fetchUser: () => Promise<void>;
   logout: () => Promise<void>;
   setPendingUserId: (userId: string | null) => void;
@@ -31,12 +31,11 @@ export const useAuthStore = create<AuthState>()(
         apiClient.loginWithFacebook();
       },
 
-      completeProfile: async (username, avatarUrl, bio) => {
+      completeProfile: async (username, bio) => {
         set({ isLoading: true });
         try {
           const response = await apiClient.completeProfile({
             username,
-            avatar_url: avatarUrl,
             bio,
           });
           set({
@@ -63,13 +62,16 @@ export const useAuthStore = create<AuthState>()(
       fetchUser: async () => {
         set({ isLoading: true });
         try {
+          console.log('Fetching current user...');
           const user = await apiClient.getCurrentUser();
+          console.log('User fetched successfully:', user);
           set({
             user,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch (error) {
+          console.error('Failed to fetch user:', error);
           // User not authenticated, clear state
           set({
             user: null,

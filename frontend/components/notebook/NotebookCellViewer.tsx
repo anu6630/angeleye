@@ -17,32 +17,22 @@ interface NotebookCellViewerProps {
 export function NotebookCellViewer({ cell }: NotebookCellViewerProps) {
   const { cell_type, content, output } = cell;
 
+  // Code cells: show output only — source is never shown to viewers.
+  // If a code cell produced no output, render nothing (no empty box).
+  if (cell_type === 'code') {
+    if (!output) return null;
+    return (
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+        <NotebookOutput output={output} isRunning={false} />
+      </div>
+    );
+  }
+
+  // Markdown cells: render as formatted text.
+  if (!content.trim()) return null;
   return (
-    <div className="border rounded-lg bg-card overflow-hidden">
-      {/* Cell header */}
-      <div className="px-4 py-2 border-b bg-muted/50">
-        <span className="text-xs font-medium text-muted-foreground uppercase">
-          {cell_type}
-        </span>
-      </div>
-
-      {/* Cell content - read-only display */}
-      <div className="p-4">
-        {cell_type === 'code' ? (
-          <pre className="bg-muted rounded p-4 overflow-x-auto text-sm">
-            <code>{content}</code>
-          </pre>
-        ) : (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content}
-            </ReactMarkdown>
-          </div>
-        )}
-      </div>
-
-      {/* Cell output - pre-rendered (VIEW-05: no execution) */}
-      <NotebookOutput output={output} isRunning={false} />
+    <div className="px-5 py-4 prose prose-sm max-w-none dark:prose-invert">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );
 }

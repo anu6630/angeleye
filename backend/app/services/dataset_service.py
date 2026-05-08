@@ -1,6 +1,7 @@
 import os
 import csv
 import time
+from pathlib import Path
 from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import UploadFile, HTTPException
@@ -11,12 +12,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Supported flat-file formats and their MIME types
+ALLOWED_EXTENSIONS: dict[str, str] = {
+    '.csv': 'text/csv',
+    '.tsv': 'text/tab-separated-values',
+    '.txt': 'text/plain',
+    '.json': 'application/json',
+    '.parquet': 'application/octet-stream',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.xls': 'application/vnd.ms-excel',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+}
+
 
 class DatasetService:
     """
     Service for dataset upload, storage, and access.
 
-    NOTE-03: User can upload datasets (CSV files)
+    NOTE-03: User can upload datasets (CSV, TSV, TXT, JSON, Parquet, Excel)
     STOR-02: Dataset access restricted to notebook owner and viewers
     SEC-03: Dataset access restricted with presigned URLs
     """
@@ -33,7 +50,8 @@ class DatasetService:
         """
         Upload a dataset file to MinIO/S3 and create metadata record.
 
-        NOTE-03: User can upload datasets (CSV files) to support charts and data visualization
+        NOTE-03: User can upload flat-file datasets to support charts and data visualization.
+        Supported formats: CSV, TSV, TXT, JSON, Parquet, Excel (.xlsx/.xls)
 
         Args:
             file: FastAPI UploadFile from multipart form data
@@ -45,9 +63,17 @@ class DatasetService:
         Raises:
             HTTPException: If file validation fails or upload fails
         """
-        # Validate file type (CSV only per NOTE-03)
-        if not file.filename or not file.filename.endswith('.csv'):
-            raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+        # Validate file type
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+        ext = Path(file.filename).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            allowed = ', '.join(sorted(ALLOWED_EXTENSIONS.keys()))
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type '{ext}'. Allowed: {allowed}"
+            )
+        content_type = ALLOWED_EXTENSIONS[ext]
 
         # Validate file size (max 100MB per RESEARCH.md Pitfall 6)
         MAX_SIZE = settings.MAX_DATASET_SIZE_MB * 1024 * 1024  # Convert to bytes
@@ -72,20 +98,25 @@ class DatasetService:
                 file.file,
                 settings.DATASETS_BUCKET,
                 s3_key,
-                content_type="text/csv"
+                content_type=content_type
             )
         except Exception as e:
             logger.error(f"Failed to upload dataset: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
-        # Count rows (optional, for preview)
+        # Count rows for CSV/TSV only (optional, for preview)
         row_count = None
-        try:
-            file.file._file.seek(0)
-            reader = csv.reader(line.decode('utf-8') for line in file.file)
-            row_count = sum(1 for _ in reader) - 1  # Exclude header
-        except Exception:
-            pass  # Row count is optional, don't fail if parsing fails
+        if ext in ('.csv', '.tsv'):
+            try:
+                delimiter = '\t' if ext == '.tsv' else ','
+                file.file._file.seek(0)
+                reader = csv.reader(
+                    (line.decode('utf-8') for line in file.file),
+                    delimiter=delimiter
+                )
+                row_count = sum(1 for _ in reader) - 1  # Exclude header
+            except Exception:
+                pass  # Row count is optional, don't fail if parsing fails
 
         # Create database record
         dataset = Dataset(
@@ -93,7 +124,7 @@ class DatasetService:
             filename=filename,
             original_filename=file.filename,
             file_size_bytes=file_size,
-            content_type="text/csv",
+            content_type=content_type,
             s3_key=s3_key,
             row_count=row_count
         )
@@ -146,6 +177,30 @@ class DatasetService:
             .order_by(Dataset.created_at.desc())\
             .limit(limit)\
             .all()
+
+    def download_for_compilation(self, dataset_id: int, user_id: int, dest_dir: str) -> tuple[str, str]:
+        """
+        Download a dataset file to a local temp directory for container mounting.
+
+        Uses direct S3 SDK access (not presigned URL) so there is no expiry risk
+        even if compilation is queued behind other jobs.
+
+        Args:
+            dataset_id: ID of the dataset to download
+            user_id: Requesting user — must own the dataset (SEC-03)
+            dest_dir: Directory to write the file into
+
+        Returns:
+            Tuple of (local_path, original_filename)
+
+        Raises:
+            HTTPException: If dataset not found or user doesn't own it
+        """
+        dataset = self.get_dataset(dataset_id, user_id)
+        local_path = os.path.join(dest_dir, dataset.original_filename)
+        self.storage.download_file_to_path(settings.DATASETS_BUCKET, dataset.s3_key, local_path)
+        logger.info(f"Dataset {dataset_id} downloaded to {local_path}")
+        return local_path, dataset.original_filename
 
     def generate_download_url(self, dataset: Dataset) -> str:
         """

@@ -1,0 +1,293 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: notebook-management.spec.ts >> Notebook Management with Email/Password Auth >> Complete notebook creation flow
+- Location: tests/e2e/notebook-management.spec.ts:130:7
+
+# Error details
+
+```
+Error: expect(locator).toBeVisible() failed
+
+Locator: locator('textarea').first()
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "toBeVisible" with timeout 5000ms
+  - waiting for locator('textarea').first()
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "NotebookSocial" [ref=e4] [cursor=pointer]:
+        - /url: /feed
+        - img [ref=e6]
+        - generic [ref=e9]: NotebookSocial
+      - navigation "Main" [ref=e10]:
+        - link "Feed" [ref=e11] [cursor=pointer]:
+          - /url: /feed
+          - button "Feed" [ref=e12]:
+            - img [ref=e13]
+            - text: Feed
+        - link "Search" [ref=e16] [cursor=pointer]:
+          - /url: /search
+          - button "Search" [ref=e17]:
+            - img [ref=e18]
+            - text: Search
+        - link "My notebooks" [ref=e21] [cursor=pointer]:
+          - /url: /my-notebooks
+          - button "My notebooks" [ref=e22]:
+            - img [ref=e23]
+            - text: My notebooks
+        - link "New" [ref=e26] [cursor=pointer]:
+          - /url: /notebooks/new
+          - button "New" [ref=e27]:
+            - img [ref=e28]
+            - text: New
+      - button "TE testuser" [ref=e32] [cursor=pointer]:
+        - generic [ref=e34]: TE
+        - generic [ref=e35]: testuser
+  - alert [ref=e36]
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - paragraph [ref=e40]: Workflow
+      - list [ref=e41]:
+        - listitem [ref=e42]: 1. Edit & run — cells execute in the browser (Pyodide) for quick iteration.
+        - listitem [ref=e43]: 2. Save & compile — server build in Docker produces the shareable output.
+        - listitem [ref=e44]: 3. Publish — push the compiled notebook to the feed.
+    - generic [ref=e45]:
+      - img [ref=e46]
+      - textbox "Untitled notebook" [active] [ref=e49]: E2E Test Notebook 1776789768227
+    - generic [ref=e50]:
+      - button "Save" [ref=e51] [cursor=pointer]:
+        - img [ref=e52]
+        - text: Save
+      - button "Compile" [disabled]:
+        - img
+        - text: Compile
+      - button "Publish" [disabled]:
+        - img
+        - text: Publish
+    - generic [ref=e57]:
+      - paragraph [ref=e58]: No cells yet
+      - button "Add Code Cell" [ref=e59] [cursor=pointer]
+```
+
+# Test source
+
+```ts
+  63  |     console.log('Step 1: Login via API');
+  64  |     const apiResponse = await context.request.post('http://localhost:8000/api/v1/auth/login', {
+  65  |       data: {
+  66  |         email: TEST_USER.email,
+  67  |         password: TEST_USER.password
+  68  |       },
+  69  |       headers: {
+  70  |         'Content-Type': 'application/json',
+  71  |       },
+  72  |       maxRedirects: 0
+  73  |     });
+  74  |     // Login now returns 200 with JSON instead of 302 redirect
+  75  |     expect([200, 302]).toContain(apiResponse.status());
+  76  |     console.log('✓ Login successful');
+  77  | 
+  78  |     console.log('Step 2: Navigate to Create Notebook page');
+  79  |     await page.goto('http://localhost:3000/notebooks/new');
+  80  |     await page.waitForLoadState('networkidle');
+  81  | 
+  82  |     console.log('Step 3: Wait for editor to load');
+  83  |     // Wait for Pyodide and editor to load
+  84  |     await page.waitForTimeout(3000);
+  85  | 
+  86  |     console.log('Step 4: Verify editor is visible');
+  87  |     const editor = page.locator('textarea, [contenteditable="true"], .editor, [role="textbox"]');
+  88  |     const isEditorVisible = await editor.first().isVisible().catch(() => false);
+  89  | 
+  90  |     if (isEditorVisible) {
+  91  |       console.log('✓ Notebook editor is visible');
+  92  |     } else {
+  93  |       console.log('⚠️  Editor not immediately visible, checking page title');
+  94  |       await expect(page).toHaveTitle(/Notebook|Editor/i, { timeout: 10000 });
+  95  |       console.log('✓ Notebook page loaded');
+  96  |     }
+  97  | 
+  98  |     console.log('Step 5: Check for editor controls');
+  99  |     const hasRunButton = await page.locator('button:has-text("Run"), button:has-text("▶")').count() > 0;
+  100 |     const hasPublishButton = await page.locator('button:has-text("Publish"), button:has-text("Save")').count() > 0;
+  101 | 
+  102 |     console.log(`  Run button: ${hasRunButton ? '✓' : '✗'}`);
+  103 |     console.log(`  Publish/Save button: ${hasPublishButton ? '✓' : '✗'}`);
+  104 | 
+  105 |     console.log('Step 6: Try to add content to notebook');
+  106 |     const titleInput = page.locator('input[placeholder*="title"], input[type="text"]').first();
+  107 |     const isTitleVisible = await titleInput.isVisible().catch(() => false);
+  108 | 
+  109 |     if (isTitleVisible) {
+  110 |       await titleInput.fill('Test E2E Notebook');
+  111 |       console.log('✓ Title field found and filled');
+  112 | 
+  113 |       // Try to add code content
+  114 |       const codeEditor = page.locator('textarea').first();
+  115 |       const isCodeEditorVisible = await codeEditor.isVisible().catch(() => false);
+  116 | 
+  117 |       if (isCodeEditorVisible) {
+  118 |         await codeEditor.fill('print("Hello, World!")');
+  119 |         console.log('✓ Code editor found and filled with test content');
+  120 |       }
+  121 |     } else {
+  122 |       console.log('⚠️  Title field not found, may need to look for editor structure');
+  123 |     }
+  124 | 
+  125 |     console.log('Step 7: Take screenshot for verification');
+  126 |     await page.screenshot({ path: 'test-results/create-notebook-page.png', fullPage: true });
+  127 |     console.log('✓ Screenshot saved to test-results/create-notebook-page.png');
+  128 |   });
+  129 | 
+  130 |   test('Complete notebook creation flow', async ({ page, context }) => {
+  131 |     console.log('Step 1: Login via API');
+  132 |     const apiResponse = await context.request.post('http://localhost:8000/api/v1/auth/login', {
+  133 |       data: {
+  134 |         email: TEST_USER.email,
+  135 |         password: TEST_USER.password
+  136 |       },
+  137 |       headers: {
+  138 |         'Content-Type': 'application/json',
+  139 |       },
+  140 |       maxRedirects: 0
+  141 |     });
+  142 |     // Login now returns 200 with JSON instead of 302 redirect
+  143 |     expect([200, 302]).toContain(apiResponse.status());
+  144 |     console.log('✓ Login successful');
+  145 | 
+  146 |     console.log('Step 2: Navigate to Create Notebook');
+  147 |     await page.goto('http://localhost:3000/notebooks/new');
+  148 | 
+  149 |     console.log('Step 3: Wait for page load');
+  150 |     await page.waitForLoadState('networkidle');
+  151 |     await page.waitForTimeout(2000); // Additional wait for Pyodide
+  152 | 
+  153 |     console.log('Step 4: Fill in notebook title');
+  154 |     const titleInput = page.locator('input[placeholder="Untitled notebook"], input[placeholder*="notebook" i]').first();
+  155 |     await page.waitForTimeout(5000); // Wait longer for Pyodide and editor
+  156 |     await expect(titleInput).toBeVisible({ timeout: 15000 });
+  157 |     const testTitle = `E2E Test Notebook ${Date.now()}`;
+  158 |     await titleInput.fill(testTitle);
+  159 |     console.log(`✓ Title filled: "${testTitle}"`);
+  160 | 
+  161 |     console.log('Step 5: Add code content');
+  162 |     const codeEditor = page.locator('textarea').first();
+> 163 |     await expect(codeEditor).toBeVisible({ timeout: 5000 });
+      |                              ^ Error: expect(locator).toBeVisible() failed
+  164 |     const testCode = 'print("Hello from E2E test!")\nprint(2 + 2)';
+  165 |     await codeEditor.fill(testCode);
+  166 |     console.log('✓ Code content added');
+  167 | 
+  168 |     console.log('Step 6: Try to save/publish notebook');
+  169 |     const saveButton = page.locator('button:has-text("Save"), button:has-text("Publish"), button:has-text("Create")').first();
+  170 |     await expect(saveButton).toBeVisible({ timeout: 5000 });
+  171 |     await saveButton.click();
+  172 |     console.log('✓ Save/Publish button clicked');
+  173 | 
+  174 |     console.log('Step 7: Wait for save to complete');
+  175 |     await page.waitForTimeout(2000);
+  176 | 
+  177 |     console.log('Step 8: Check if we were redirected');
+  178 |     const currentUrl = page.url();
+  179 |     console.log(`  Current URL: ${currentUrl}`);
+  180 | 
+  181 |     if (currentUrl.includes('/notebooks/') && !currentUrl.includes('/new')) {
+  182 |       console.log('✓ Redirected to notebook view/edit page');
+  183 |     } else if (currentUrl.includes('/my-notebooks')) {
+  184 |       console.log('✓ Redirected to My Notebooks');
+  185 |     } else {
+  186 |       console.log('⚠️  Still on create page or unexpected redirect');
+  187 |     }
+  188 | 
+  189 |     console.log('Step 9: Navigate to My Notebooks to verify');
+  190 |     await page.goto('http://localhost:3000/my-notebooks');
+  191 |     await page.waitForLoadState('networkidle');
+  192 | 
+  193 |     console.log('Step 10: Verify notebook was created');
+  194 |     await expect(page.getByRole('heading', { name: /my notebooks/i })).toBeVisible();
+  195 | 
+  196 |     // Check if our notebook appears in the list
+  197 |     const notebookTitle = page.locator(`text=/${testTitle}/`).or(page.locator(`text=${testTitle}`));
+  198 |     const isNotebookVisible = await notebookTitle.isVisible().catch(() => false);
+  199 | 
+  200 |     if (isNotebookVisible) {
+  201 |       console.log(`✓ Found created notebook: "${testTitle}"`);
+  202 |     } else {
+  203 |       console.log('⚠️  Notebook not immediately visible in list (may need time to save)');
+  204 |       await page.screenshot({ path: 'test-results/my-notebooks-after-create.png', fullPage: true });
+  205 |     }
+  206 | 
+  207 |     console.log('✅ Complete notebook creation flow tested');
+  208 |   });
+  209 | 
+  210 |   test('View and interact with My Notebooks list', async ({ page, context }) => {
+  211 |     console.log('Step 1: Login via API');
+  212 |     const apiResponse = await context.request.post('http://localhost:8000/api/v1/auth/login', {
+  213 |       data: {
+  214 |         email: TEST_USER.email,
+  215 |         password: TEST_USER.password
+  216 |       },
+  217 |       headers: {
+  218 |         'Content-Type': 'application/json',
+  219 |       },
+  220 |       maxRedirects: 0
+  221 |     });
+  222 |     // Login now returns 200 with JSON instead of 302 redirect
+  223 |     expect([200, 302]).toContain(apiResponse.status());
+  224 |     console.log('✓ Login successful');
+  225 | 
+  226 |     console.log('Step 2: Navigate to My Notebooks');
+  227 |     await page.goto('http://localhost:3000/my-notebooks');
+  228 |     await page.waitForLoadState('networkidle');
+  229 | 
+  230 |     console.log('Step 3: Verify page structure');
+  231 |     await expect(page.getByRole('heading', { name: /my notebooks/i })).toBeVisible({ timeout: 5000 });
+  232 | 
+  233 |     const newNotebookButton = page.locator('a[href="/notebooks/new"], a:has-text("New notebook"), button:has-text("New notebook")');
+  234 |     await expect(newNotebookButton.first()).toBeVisible({ timeout: 5000 });
+  235 |     console.log('✓ New Notebook button visible');
+  236 | 
+  237 |     console.log('Step 4: Check notebooks list');
+  238 |     const notebookCards = page.locator('.card');
+  239 |     const cardCount = await notebookCards.count();
+  240 |     console.log(`  Found ${cardCount} notebook card(s)`);
+  241 | 
+  242 |     if (cardCount > 0) {
+  243 |       console.log('Step 5: Examine first notebook card');
+  244 |       const firstCard = notebookCards.first();
+  245 |       await expect(firstCard).toBeVisible();
+  246 | 
+  247 |       // Check for notebook title
+  248 |       const title = firstCard.locator('h3, .font-semibold').first();
+  249 |       const titleText = await title.textContent().catch(() => 'N/A');
+  250 |       console.log(`  Notebook title: "${titleText}"`);
+  251 | 
+  252 |       // Check for status (Published/Draft)
+  253 |       const status = firstCard.locator('text=/Published|Draft/').first();
+  254 |       const statusText = await status.textContent().catch(() => 'N/A');
+  255 |       console.log(`  Status: "${statusText}"`);
+  256 | 
+  257 |       // Check for action buttons
+  258 |       const editButton = firstCard.locator('a[href*="/edit"], button:has(.edit-icon), button:has-text("Edit")').first();
+  259 |       const deleteButton = firstCard.locator('button:has(.trash-icon), button:has-text("Delete"), button:has(.Trash2)').first();
+  260 | 
+  261 |       const hasEdit = await editButton.isVisible().catch(() => false);
+  262 |       const hasDelete = await deleteButton.isVisible().catch(() => false);
+  263 | 
+```

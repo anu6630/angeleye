@@ -8,6 +8,7 @@ import { defineConfig, devices } from '@playwright/test'
  * Per D-16: Strict failure policy (no retries)
  */
 export default defineConfig({
+  globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

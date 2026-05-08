@@ -23,7 +23,7 @@ export function ForkChain({ notebookId, variant = 'full', className }: ForkChain
       setIsLoading(true);
       try {
         const data = await apiClient.getForkChain(notebookId);
-        setChain(data);
+        setChain(data.chain);
       } catch (error) {
         console.error('Failed to load fork chain:', error);
       } finally {
@@ -43,7 +43,9 @@ export function ForkChain({ notebookId, variant = 'full', className }: ForkChain
     );
   }
 
-  if (chain.length === 0) {
+  // Show fork chain only for actual forks (2+ nodes in lineage).
+  // Originals should not display any fork attribution row.
+  if (!chain || !Array.isArray(chain) || chain.length <= 1) {
     return null;
   }
 
@@ -74,7 +76,7 @@ export function ForkChain({ notebookId, variant = 'full', className }: ForkChain
                   href={`/notebooks/${notebook.id}`}
                   className="hover:underline font-medium"
                 >
-                  @{notebook.user?.username || 'unknown'}
+                  @{notebook.user?.username || notebook.username || 'unknown'}
                 </Link>
                 {!isLast && <span className="text-muted-foreground">→</span>}
               </div>
@@ -86,7 +88,7 @@ export function ForkChain({ notebookId, variant = 'full', className }: ForkChain
   }
 
   // Compact variant (mobile): Badge with expandable chain
-  const parent = chain[chain.length - 2]; // Second to last is the direct parent
+  const parent = chain.length > 1 ? chain[chain.length - 2] : null; // Second to last is the direct parent
   const isFork = chain.length > 1;
 
   if (!isFork) {
@@ -98,12 +100,14 @@ export function ForkChain({ notebookId, variant = 'full', className }: ForkChain
       <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <GitBranch className="h-3 w-3" />
         <span>Forked from</span>
-        <Link
-          href={`/notebooks/${parent.id}`}
-          className="hover:underline font-medium"
-        >
-          @{parent.user?.username || 'unknown'}
-        </Link>
+        {parent && (
+          <Link
+            href={`/notebooks/${parent.id}`}
+            className="hover:underline font-medium"
+          >
+            @{parent.user?.username || 'unknown'}
+          </Link>
+        )}
         {chain.length > 2 && (
           <Button
             variant="ghost"
@@ -135,7 +139,7 @@ export function ForkChain({ notebookId, variant = 'full', className }: ForkChain
                 href={`/notebooks/${notebook.id}`}
                 className="hover:underline"
               >
-                @{notebook.user?.username || 'unknown'}
+                @{notebook.user?.username || notebook.username || 'unknown'}
               </Link>
             </div>
           ))}

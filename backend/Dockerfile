@@ -15,9 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
+# Non-root user; optional docker group for Celery + host socket (group must exist in image)
+RUN getent group docker >/dev/null || groupadd -g 999 docker && \
+    useradd -m -u 1000 appuser && \
+    usermod -aG docker appuser && \
+    chown -R appuser:appuser /app
 
 # Expose port
 EXPOSE 8000

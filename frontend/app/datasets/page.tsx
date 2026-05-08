@@ -4,14 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCompilationStore } from '@/stores/compilation-store';
 import type { Dataset } from '@/lib/api-client';
-import {
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, Trash2, Download, FileSpreadsheet, Loader2 } from 'lucide-react';
 
 export default function DatasetsPage() {

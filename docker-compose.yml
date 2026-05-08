@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:17-alpine
@@ -9,7 +7,7 @@ services:
       POSTGRES_PASSWORD: notebooksocial_password
       POSTGRES_DB: notebooksocial
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5435}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -41,8 +39,9 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # Host ports avoid conflict when another MinIO/S3 proxy uses 9000 locally
+      - "${MINIO_HOST_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9003}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -52,7 +51,7 @@ services:
       retries: 3
 
   meilisearch:
-    image: getmeilisearch/meilisearch:v1.5
+    image: getmeili/meilisearch:v1.5
     container_name: notebooksocial-meilisearch
     environment:
       MEILI_ENV: development
@@ -62,7 +61,7 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:7700/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -84,6 +83,8 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
       - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
+      - MEILISEARCH_URL=http://meilisearch:7700
+      - FRONTEND_URL=http://localhost:3000
     ports:
       - "8000:8000"
     depends_on:
@@ -112,6 +113,7 @@ services:
       - MINIO_ENDPOINT=http://minio:9000
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
+      - NOTEBOOK_TEMP_VOLUME=time_notebook_temp
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,8 +125,10 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-      - /var/run/docker.sock:/var/run/docker.sock  # For container execution (Plan 03-03A)
+      - /var/run/docker.sock:/var/run/docker.sock:rw  # For container execution (Plan 03-03A)
       - notebook_temp:/tmp/notebooks  # Shared temp volume for notebook files
+    # For development, run as root to access Docker socket
+    user: root
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2 -Q compilation
     healthcheck:
       test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping || exit 1"]
@@ -136,6 +140,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
     container_name: notebooksocial-frontend
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
@@ -145,11 +151,6 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    command: npm run dev
 
 volumes:
   postgres_data:

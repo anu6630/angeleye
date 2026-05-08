@@ -21,14 +21,14 @@ export function ProfileCard({ user, showStats = true, stats }: ProfileCardProps)
     .slice(0, 2);
 
   return (
-    <Card>
+    <Card className="overflow-hidden border-border/80 shadow-sm">
       <CardHeader className="flex flex-row items-center gap-4">
-        <Avatar className="h-20 w-20">
+        <Avatar className="h-20 w-20 ring-2 ring-border">
           <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
-          <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+          <AvatarFallback className="text-lg font-medium">{initials}</AvatarFallback>
         </Avatar>
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">{user.username}</h2>
+          <h2 className="font-display text-3xl font-semibold tracking-tight">@{user.username}</h2>
           <p className="text-sm text-muted-foreground">
             Joined {new Date(user.created_at).toLocaleDateString()}
           </p>

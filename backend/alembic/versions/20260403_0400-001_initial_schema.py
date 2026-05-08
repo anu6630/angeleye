@@ -1,6 +1,6 @@
 """Initial schema: users and profiles tables
 
-Revision ID: 001
+Revision ID: 20260403_0400
 Revises:
 Create Date: 2026-04-03 04:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '001'
+revision = '20260403_0400'
 down_revision = None
 branch_labels = None
 depends_on = None

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProfileWizard } from '@/components/profile/ProfileWizard';
 import { useAuthStore } from '@/stores/auth-store';
+import { AvatarCropData, apiClient } from '@/lib/api-client';
 
 export default function ProfileWizardPage() {
   const { isAuthenticated, pendingUserId, completeProfile } = useAuthStore();
@@ -35,9 +36,17 @@ export default function ProfileWizardPage() {
     }
   }, [isAuthenticated, pendingUserId, router]);
 
-  const handleCompleteProfile = async (username: string, avatarUrl?: string, bio?: string) => {
+  const handleCompleteProfile = async (
+    username: string,
+    bio?: string,
+    avatarPayload?: { file: File; cropData: AvatarCropData }
+  ) => {
     try {
-      await completeProfile(username, avatarUrl, bio);
+      await completeProfile(username, bio);
+      if (avatarPayload) {
+        await apiClient.uploadMyAvatar(avatarPayload.file, avatarPayload.cropData);
+        await useAuthStore.getState().fetchUser();
+      }
       router.push('/');
     } catch (error) {
       console.error('Failed to complete profile:', error);

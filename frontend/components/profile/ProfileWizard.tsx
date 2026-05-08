@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, User, FileText, Image as ImageIcon } from 'lucide-react';
+import { Loader2, User, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { AvatarUploader } from './AvatarUploader';
+import { AvatarCropData } from '@/lib/api-client';
 
 const profileSchema = z.object({
   username: z
@@ -17,23 +19,29 @@ const profileSchema = z.object({
     .min(3, 'Username must be at least 3 characters')
     .max(50, 'Username must be at most 50 characters')
     .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
-  avatar_url: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   bio: z.string().max(500, 'Bio must be at most 500 characters').optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface ProfileWizardProps {
-  onComplete: (username: string, avatarUrl?: string, bio?: string) => Promise<void>;
+  onComplete: (
+    username: string,
+    bio?: string,
+    avatarPayload?: { file: File; cropData: AvatarCropData }
+  ) => Promise<void>;
 }
 
 export function ProfileWizard({ onComplete }: ProfileWizardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPayload, setAvatarPayload] = useState<{ file: File; cropData: AvatarCropData } | undefined>(undefined);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -46,8 +54,8 @@ export function ProfileWizard({ onComplete }: ProfileWizardProps) {
     try {
       await onComplete(
         data.username,
-        data.avatar_url || undefined,
-        data.bio || undefined
+        data.bio || undefined,
+        avatarPayload
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete profile');
@@ -85,22 +93,26 @@ export function ProfileWizard({ onComplete }: ProfileWizardProps) {
             </p>
           </div>
 
-          {/* Avatar URL - Optional per D-06 */}
+          {/* Avatar Upload */}
           <div className="space-y-2">
-            <Label htmlFor="avatar_url" className="flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              Avatar URL <span className="text-muted-foreground">(optional)</span>
+            <Label className="flex items-center gap-2">
+              Profile photo <span className="text-muted-foreground">(optional)</span>
             </Label>
-            <Input
-              id="avatar_url"
-              type="url"
-              placeholder="https://example.com/avatar.jpg"
-              {...register('avatar_url')}
+            <AvatarUploader
+              username={watch('username') || 'User'}
+              avatarUrl={avatarUrl}
               disabled={isLoading}
+              uploading={isLoading}
+              onUpload={async ({ file, crop }) => {
+                const cropData: AvatarCropData = {
+                  crop_x: Math.round(crop.x),
+                  crop_y: Math.round(crop.y),
+                  crop_size: Math.round(Math.min(crop.width, crop.height)),
+                };
+                setAvatarPayload({ file, cropData });
+                setAvatarUrl(URL.createObjectURL(file));
+              }}
             />
-            {errors.avatar_url && (
-              <p className="text-sm text-destructive">{errors.avatar_url.message}</p>
-            )}
           </div>
 
           {/* Bio - Optional per D-06 */}

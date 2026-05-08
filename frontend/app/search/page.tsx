@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SearchBar } from '@/components/search/SearchBar';
 import { FilterTabs } from '@/components/search/FilterTabs';
@@ -9,7 +9,7 @@ import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
 import { apiClient, NotebookResponse } from '@/lib/api-client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const queryParam = searchParams.get('q') || '';
 
@@ -123,5 +123,13 @@ export default function SearchPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto py-8">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

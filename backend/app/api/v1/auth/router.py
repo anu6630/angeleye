@@ -5,20 +5,32 @@ from starlette.config import Config
 from sqlalchemy.orm import Session
 from typing import Optional
 import secrets
-import os
 
 from app.db.session import get_db
 from app.services.auth_service import AuthService
 from app.core.security import create_access_token, create_refresh_token
+from app.core.config import settings
+from app.core.security import hash_password, verify_password
+from app.models.user import User
+from app.models.profile import Profile
 from app.api.v1.auth.schemas import (
     OAuthCallbackResponse,
     ProfileCompletionRequest,
     ProfileCompletionResponse,
-    MeResponse
+    MeResponse,
+    RegisterRequest,
+    LoginRequest,
+    RegisterResponse
 )
-from app.api.v1.dependencies import limiter
+from app.api.v1.dependencies import rate_limit_authorization
+from app.services.avatar_service import build_avatar_url
 
 router = APIRouter()
+
+
+def _cookie_secure() -> bool:
+    """Mark auth cookies secure when frontend is served over HTTPS."""
+    return settings.FRONTEND_URL.startswith("https://")
 
 # OAuth configuration (D-03, D-04)
 config = Config('.env')
@@ -38,9 +50,10 @@ oauth.register(
     client_kwargs={'scope': 'email public_profile'}
 )
 
-@router.get('/google')
-@limiter.limit("10/minute")  # Rate limit OAuth initiation (SEC-04)
-async def login_via_google(request: Request):
+@router.get('/google', dependencies=[Depends(rate_limit_authorization())])
+async def login_via_google(
+    request: Request
+):  # Rate limiting temporarily disabled for debugging
     """Initiate Google OAuth flow (AUTH-01, D-03)"""
     state = secrets.token_urlsafe(16)
     request.session['oauth_state'] = state
@@ -48,7 +61,7 @@ async def login_via_google(request: Request):
 
     return await oauth.google.authorize_redirect(request, redirect_uri, state=state)
 
-@router.get('/google/callback')
+@router.get('/google/callback', dependencies=[Depends(rate_limit_authorization())])
 async def auth_google_callback(
     request: Request,
     response: Response,
@@ -62,8 +75,14 @@ async def auth_google_callback(
 
         # Get OAuth token
         token = await oauth.google.authorize_access_token(request)
-        # Parse user info from ID token
-        user_info = await oauth.google.parse_id_token(request, token)
+
+        # Parse user info - try ID token first, fallback to userinfo endpoint
+        try:
+            user_info = await oauth.google.parse_id_token(request, token)
+        except Exception:
+            # Fallback to userinfo endpoint
+            resp = await oauth.google.get('https://www.googleapis.com/oauth2/v3/userinfo', token=token)
+            user_info = resp.json()
 
         # Get or create user
         auth_service = AuthService(db)
@@ -71,29 +90,33 @@ async def auth_google_callback(
 
         if user:
             # Existing user - create tokens and set cookies (AUTH-03, D-09, D-10, D-12)
-            access_token = create_access_token(data={"sub": user.id})
-            refresh_token = create_refresh_token(data={"sub": user.id})
+            access_token = create_access_token(user.id)
+            refresh_token = create_refresh_token(user.id)
 
-            # Set httpOnly cookies (D-10)
-            response.set_cookie(
+            # Create redirect response with cookies
+            redirect_response = RedirectResponse(url=f"{settings.FRONTEND_URL}/", status_code=302)
+
+            # Set httpOnly cookies directly on redirect response (D-10)
+            redirect_response.set_cookie(
                 key="access_token",
                 value=access_token,
                 httponly=True,
-                secure=False,  # Set to True in production (HTTPS)
+                secure=_cookie_secure(),
                 samesite="lax",
-                max_age=1800  # 30 minutes
+                max_age=1800,  # 30 minutes
+                path="/",
             )
-            response.set_cookie(
+            redirect_response.set_cookie(
                 key="refresh_token",
                 value=refresh_token,
                 httponly=True,
-                secure=False,
+                secure=_cookie_secure(),
                 samesite="lax",
-                max_age=604800  # 7 days
+                max_age=604800,  # 7 days
+                path="/",
             )
 
-            # Redirect to home
-            return RedirectResponse(url="/", status_code=302)
+            return redirect_response
         else:
             # New user - redirect to profile wizard (D-01, D-02)
             pending_user = auth_service.create_oauth_user(
@@ -103,25 +126,29 @@ async def auth_google_callback(
                 name=user_info.get('name')
             )
 
+            # Create redirect response with pending user cookie
+            redirect_response = RedirectResponse(url=f"{settings.FRONTEND_URL}/profile-wizard", status_code=302)
+
             # Set temporary session for wizard
-            response.set_cookie(
+            redirect_response.set_cookie(
                 key="pending_user_id",
                 value=str(pending_user.id),
                 httponly=True,
-                secure=False,
+                secure=_cookie_secure(),
                 samesite="lax",
-                max_age=3600  # 1 hour
+                max_age=3600,  # 1 hour
+                path="/",
             )
 
-            # Redirect to profile wizard
-            return RedirectResponse(url="/profile-wizard", status_code=302)
+            return redirect_response
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"OAuth failed: {str(e)}")
 
-@router.get('/facebook')
-@limiter.limit("10/minute")
-async def login_via_facebook(request: Request):
+@router.get('/facebook', dependencies=[Depends(rate_limit_authorization())])
+async def login_via_facebook(
+    request: Request
+):  # Rate limiting temporarily disabled for debugging
     """Initiate Facebook OAuth flow (AUTH-02, D-03)"""
     state = secrets.token_urlsafe(16)
     request.session['oauth_state'] = state
@@ -129,7 +156,7 @@ async def login_via_facebook(request: Request):
 
     return await oauth.facebook.authorize_redirect(request, redirect_uri, state=state)
 
-@router.get('/facebook/callback')
+@router.get('/facebook/callback', dependencies=[Depends(rate_limit_authorization())])
 async def auth_facebook_callback(
     request: Request,
     response: Response,
@@ -153,27 +180,33 @@ async def auth_facebook_callback(
 
         if user:
             # Existing user - create tokens and set cookies (AUTH-03, D-09, D-10, D-12)
-            access_token = create_access_token(data={"sub": user.id})
-            refresh_token = create_refresh_token(data={"sub": user.id})
+            access_token = create_access_token(user.id)
+            refresh_token = create_refresh_token(user.id)
 
-            response.set_cookie(
+            # Create redirect response with cookies
+            redirect_response = RedirectResponse(url=f"{settings.FRONTEND_URL}/", status_code=302)
+
+            redirect_response.set_cookie(
                 key="access_token",
                 value=access_token,
                 httponly=True,
-                secure=False,
+                secure=_cookie_secure(),
                 samesite="lax",
-                max_age=1800
+                max_age=1800,
+                path="/",
             )
-            response.set_cookie(
+            redirect_response.set_cookie(
                 key="refresh_token",
                 value=refresh_token,
                 httponly=True,
-                secure=False,
+                secure=_cookie_secure(),
                 samesite="lax",
-                max_age=604800
+                max_age=604800,
+                path="/",
             )
 
-            return RedirectResponse(url="/", status_code=302)
+            # Redirect to frontend home
+            return redirect_response
         else:
             # New user - redirect to profile wizard (D-01, D-02)
             pending_user = auth_service.create_oauth_user(
@@ -183,21 +216,26 @@ async def auth_facebook_callback(
                 name=user_info.get('name')
             )
 
-            response.set_cookie(
+            # Create redirect response with pending user cookie
+            redirect_response = RedirectResponse(url=f"{settings.FRONTEND_URL}/profile-wizard", status_code=302)
+
+            redirect_response.set_cookie(
                 key="pending_user_id",
                 value=str(pending_user.id),
                 httponly=True,
-                secure=False,
+                secure=_cookie_secure(),
                 samesite="lax",
-                max_age=3600
+                max_age=3600,
+                path="/",
             )
 
-            return RedirectResponse(url="/profile-wizard", status_code=302)
+            # Redirect to frontend profile wizard
+            return redirect_response
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"OAuth failed: {str(e)}")
 
-@router.post('/complete-profile', response_model=ProfileCompletionResponse)
+@router.post('/complete-profile', response_model=ProfileCompletionResponse, dependencies=[Depends(rate_limit_authorization())])
 async def complete_profile(
     request: Request,
     response: Response,
@@ -227,25 +265,27 @@ async def complete_profile(
         raise HTTPException(status_code=400, detail="Username already taken or user not found")
 
     # Create JWT tokens (AUTH-03, D-09, D-12)
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
 
-    # Set httpOnly cookies (D-10)
+    # Set httpOnly cookies
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
+        secure=_cookie_secure(),
         samesite="lax",
-        max_age=1800
+        max_age=1800,
+        path="/"
     )
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,
+        secure=_cookie_secure(),
         samesite="lax",
-        max_age=604800
+        max_age=604800,
+        path="/"
     )
 
     # Clear pending user cookie
@@ -255,7 +295,7 @@ async def complete_profile(
         user_id=user.id,
         username=user.username,
         email=user.email,
-        avatar_url=user.profile.avatar_url if user.profile else None,
+        avatar_url=build_avatar_url(user.username, user.profile) if user.profile else None,
         bio=user.profile.bio if user.profile else None
     )
 
@@ -288,7 +328,7 @@ async def get_current_user(
         is_active=user.is_active,
         is_verified=user.is_verified,
         bio=profile.bio if profile else None,
-        avatar_url=profile.avatar_url if profile else None,
+        avatar_url=build_avatar_url(user.username, profile) if profile else None,
         created_at=user.created_at
     )
 
@@ -299,7 +339,7 @@ async def logout(response: Response):
     response.delete_cookie("refresh_token")
     return {"success": True, "message": "Logged out successfully"}
 
-@router.post('/test-login')
+@router.post('/test-login', dependencies=[Depends(rate_limit_authorization())])
 async def test_login(
     login_data: dict,
     response: Response,
@@ -310,9 +350,8 @@ async def test_login(
     Creates a test user and returns auth tokens without OAuth.
     WARNING: Only enable in test environments!
     """
-    # Only allow in test/development environments
-    if os.getenv('ENV') == 'production':
-        raise HTTPException(status_code=403, detail="Test login not allowed in production")
+    if not settings.ENABLE_TEST_LOGIN:
+        raise HTTPException(status_code=403, detail="Test login is disabled")
 
     auth_service = AuthService(db)
 
@@ -322,8 +361,8 @@ async def test_login(
 
     if existing_user:
         # Return tokens for existing user
-        access_token = create_access_token(data={"sub": existing_user.id})
-        refresh_token = create_refresh_token(data={"sub": existing_user.id})
+        access_token = create_access_token(existing_user.id)
+        refresh_token = create_refresh_token(existing_user.id)
 
         return {
             "access_token": access_token,
@@ -355,8 +394,8 @@ async def test_login(
         )
 
         # Create tokens
-        access_token = create_access_token(data={"sub": user.id})
-        refresh_token = create_refresh_token(data={"sub": user.id})
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
 
         return {
             "access_token": access_token,
@@ -368,3 +407,122 @@ async def test_login(
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to create test user: {str(e)}")
+
+
+@router.post('/register', response_model=RegisterResponse, dependencies=[Depends(rate_limit_authorization())])
+async def register(
+    user_data: RegisterRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """Register new user with email and password"""
+    # Check if email already exists
+    existing_email = db.query(User).filter(User.email == user_data.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Check if username already exists
+    existing_username = db.query(User).filter(User.username == user_data.username).first()
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already taken")
+
+    # Create new user
+    new_user = User(
+        email=user_data.email,
+        username=user_data.username,
+        password_hash=hash_password(user_data.password),
+        is_active=True,
+        is_verified=True  # Auto-verify for test purposes
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    new_profile = Profile(user_id=new_user.id)
+    db.add(new_profile)
+    db.commit()
+
+    # Create tokens
+    access_token = create_access_token(new_user.id)
+    refresh_token = create_refresh_token(new_user.id)
+
+    # Set httpOnly cookies
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite="lax",
+        max_age=1800,
+        path="/"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite="lax",
+        max_age=604800,
+        path="/"
+    )
+
+    return RegisterResponse(
+        user_id=new_user.id,
+        username=new_user.username,
+        email=new_user.email,
+        message="Registration successful"
+    )
+
+
+@router.post('/login', dependencies=[Depends(rate_limit_authorization())])
+async def login(
+    login_data: LoginRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    """Login with email and password"""
+    # Find user by email
+    user = db.query(User).filter(User.email == login_data.email).first()
+
+    # Verify user exists and password is correct
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Account is inactive")
+
+    # Create tokens
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
+
+    # Set httpOnly cookies
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite="lax",
+        max_age=1800,
+        path="/"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite="lax",
+        max_age=604800,
+        path="/"
+    )
+
+    # Return JSON response instead of redirect for browser compatibility
+    return {
+        "success": True,
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email
+    }

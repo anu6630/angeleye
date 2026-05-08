@@ -1,7 +1,7 @@
 """add notebook output fields
 
-Revision ID: 004
-Revises: 20260404_1001-003_add_datasets_table
+Revision ID: 20260404_1002
+Revises: 20260404_1001
 Create Date: 2026-04-04
 
 """
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = '20260404_1002-004'
-down_revision = '20260404_1001-003_add_datasets_table'
+revision = '20260404_1002'
+down_revision = '20260404_1001'
 branch_labels = None
 depends_on = None
 

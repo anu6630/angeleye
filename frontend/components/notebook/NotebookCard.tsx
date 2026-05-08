@@ -23,28 +23,41 @@ export function NotebookCard({ notebook }: NotebookCardProps) {
 
   const liked = isLiked(notebook.id);
 
+  const bannerThumb = notebook.banner_thumbnail_url;
+
   return (
     <Link href={`/notebooks/${notebook.id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden">
+        {bannerThumb && (
+          <div className="relative w-full overflow-hidden bg-muted" style={{ aspectRatio: '16 / 9' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={bannerThumb}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+        )}
         <CardHeader>
           <h3 className="text-xl font-semibold mb-2 line-clamp-2">{notebook.title}</h3>
-          {notebook.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {notebook.description}
-            </p>
-          )}
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Avatar className="h-5 w-5">
-                {notebook.user?.avatar_url ? (
-                  <AvatarImage src={notebook.user.avatar_url} alt={notebook.user.username} />
+                {(notebook.user?.avatar_url || notebook.avatar_url) ? (
+                  <AvatarImage 
+                    src={(notebook.user?.avatar_url || notebook.avatar_url) as string} 
+                    alt={notebook.user?.username || notebook.username || 'user avatar'} 
+                  />
                 ) : (
                   <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                    {notebook.user?.username?.charAt(0).toUpperCase() || 'U'}
+                    {(notebook.user?.username || notebook.username || 'U').charAt(0).toUpperCase()}
                   </AvatarFallback>
                 )}
               </Avatar>
-              <span className="truncate max-w-[120px]">{notebook.user?.username || 'Unknown'}</span>
+              <span className="truncate max-w-[120px]">
+                {notebook.user?.username || notebook.username || 'Unknown'}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
@@ -54,16 +67,6 @@ export function NotebookCard({ notebook }: NotebookCardProps) {
         </CardHeader>
 
         <CardContent>
-          {/* Inline preview of notebook output */}
-          {notebook.output_url && (
-            <div className="mb-4">
-              <InlineNotebookOutput
-                outputUrl={notebook.output_url}
-                className="w-full h-64"
-              />
-            </div>
-          )}
-
           {/* Engagement stats */}
           <div className="flex items-center gap-3">
             <Button

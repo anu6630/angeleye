@@ -17,6 +17,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class CompilationFailedError(Exception):
+    """Notebook build failed in the executor (do not retry as transient)."""
+
+
 class DatabaseTask(Task):
     """Base task with database session management"""
 
@@ -64,8 +68,14 @@ def get_notebook_with_cells(notebook_id: int, db) -> Optional[dict]:
     }
 
 
-@celery_app.task(base=DatabaseTask, bind=True, max_retries=2, name='app.tasks.compilation_tasks.compile_notebook_task')
-def compile_notebook_task(self, notebook_id: int, dataset_id: Optional[int] = None):
+@celery_app.task(base=DatabaseTask, bind=True, max_retries=2, name='compile_notebook_task')
+def compile_notebook_task(
+    self,
+    notebook_id: int,
+    dataset_id: Optional[int] = None,
+    user_id: Optional[int] = None,
+    dataset_ids: Optional[list] = None,
+):
     """
     Async notebook compilation task.
 
@@ -73,15 +83,11 @@ def compile_notebook_task(self, notebook_id: int, dataset_id: Optional[int] = No
     INFRA-06: Celery manages async notebook compilation tasks
     SEC-02: Container execution has timeout limits (enforced via Celery time limits)
 
-    This task:
-    1. Retrieves notebook from database
-    2. Executes in Docker container via ContainerExecutor
-    3. Uploads output to S3/MinIO
-    4. Returns CDN URL
-
     Args:
         notebook_id: ID of notebook to compile
-        dataset_id: Optional dataset ID to mount in container
+        dataset_id: Legacy single asset ID to mount in container
+        user_id: ID of the requesting user (for dataset ownership verification)
+        dataset_ids: Optional list of asset IDs to mount (datasets/images)
 
     Returns:
         Dict with compilation result:
@@ -100,23 +106,61 @@ def compile_notebook_task(self, notebook_id: int, dataset_id: Optional[int] = No
         # Create compilation service (ContainerExecutor initialized in service __init__)
         service = CompilationService(self.db)
 
-        # Compile notebook (container execution + upload via service)
+        # Merge legacy dataset_id with dataset_ids list
+        merged_ids: list = []
+        seen = set()
+        if dataset_id is not None:
+            merged_ids.append(dataset_id)
+            seen.add(dataset_id)
+        for did in (dataset_ids or []):
+            if did not in seen:
+                merged_ids.append(did)
+                seen.add(did)
+
         result = service.compile_notebook(
             notebook_id=notebook_id,
-            dataset_id=dataset_id,
+            dataset_ids=merged_ids,
+            user_id=user_id,
             output_dir="/tmp/notebooks"
         )
 
         logger.info(f"Compilation completed for notebook {notebook_id}: {result['status']}")
+
+        # Check if compilation actually succeeded - if not, raise exception
+        if result['status'] == 'failed':
+            error_msg = result.get('error', 'Compilation failed')
+            logger.error(f"Compilation task failed for notebook {notebook_id}: {error_msg}")
+            raise CompilationFailedError(error_msg)
+
         return result
 
+    except CompilationFailedError:
+        raise
     except Exception as exc:
         logger.error(f"Compilation failed for notebook {notebook_id}: {str(exc)}")
         # Retry on transient failures
         raise self.retry(exc=exc, countdown=60)  # Retry after 60 seconds
 
 
-@celery_app.task(name='app.tasks.compilation_tasks.get_compilation_status')
+def _format_task_failure_info(info) -> str:
+    """Turn Celery AsyncResult.info into a single string for API clients."""
+    if info is None:
+        return 'Task failed with no error details'
+    if isinstance(info, str):
+        return info
+    if isinstance(info, dict):
+        return (
+            info.get('exc_message')
+            or info.get('message')
+            or info.get('error')
+            or str(info)
+        )
+    if isinstance(info, (list, tuple)) and len(info) >= 2:
+        return f"{info[0]}: {info[1]}"
+    return str(info)
+
+
+@celery_app.task(name='get_compilation_status')
 def get_compilation_status(task_id: str) -> dict:
     """
     Get the status of a compilation task.
@@ -142,6 +186,10 @@ def get_compilation_status(task_id: str) -> dict:
     if result.successful():
         response['result'] = result.result
     elif result.failed():
-        response['error'] = str(result.info)
+        response['error'] = _format_task_failure_info(result.info)
+    elif result.state in ('RETRY', 'REVOKED'):
+        # Surface last exception while retrying / revoked for debugging
+        if result.info is not None:
+            response['error'] = _format_task_failure_info(result.info)
 
     return response

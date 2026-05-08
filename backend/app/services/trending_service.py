@@ -74,9 +74,9 @@ class TrendingService:
 
         notebook_id, created_at, like_count, comment_count = result
 
-        # Calculate engagement: (likes * 2) + (comments * 3)
-        # Views not yet tracked, so formula is: engagement = (likes * 2) + (comments * 3)
-        engagement = (like_count * self.WEIGHT_LIKE) + (comment_count * self.WEIGHT_COMMENT)
+        # Calculate engagement: (likes * 2) + (comments * 3) + 1.0 (base for discovery)
+        # Views not yet tracked, so formula is: engagement = (likes * 2) + (comments * 3) + 1.0
+        engagement = (like_count * self.WEIGHT_LIKE) + (comment_count * self.WEIGHT_COMMENT) + 1.0
 
         # Calculate age in hours
         now = datetime.now(timezone.utc)

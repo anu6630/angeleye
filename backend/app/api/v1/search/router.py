@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_db
+from app.api.v1.dependencies import get_db_session
 from app.services.search_service import SearchService
 from app.services.notebook_service import NotebookService
 from app.schemas.notebook import NotebookResponse
@@ -16,7 +16,7 @@ def search_notebooks(
     q: str = Query(..., min_length=1, max_length=100, description="Search query"),
     tab: str = Query("all", regex="^(all|originals|forks)$", description="Filter by fork status"),
     limit: int = Query(50, le=100, description="Max results to return"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_session)
 ) -> dict:
     """Search notebooks with faceted filtering
 

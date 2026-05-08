@@ -2,8 +2,17 @@ import logging
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-import meilisearch
-from meilisearch.errors import MeilisearchError, MeilisearchCommunicationError
+
+# Optional Meilisearch import - allows backend to start without Meilisearch
+try:
+    import meilisearch
+    from meilisearch.errors import MeilisearchError, MeilisearchCommunicationError
+    MEILISEARCH_AVAILABLE = True
+except ImportError:
+    MEILISEARCH_AVAILABLE = False
+    meilisearch = None
+    MeilisearchError = Exception
+    MeilisearchCommunicationError = Exception
 
 from app.core.config import settings
 from app.models.notebook import Notebook
@@ -17,14 +26,27 @@ class SearchService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.client = meilisearch.Client(
-            settings.MEILISEARCH_URL,
-            timeout=settings.MEILISEARCH_TIMEOUT
-        )
-        self.index_name = settings.MEILISEARCH_INDEX_NAME
+        if MEILISEARCH_AVAILABLE and hasattr(settings, 'MEILISEARCH_URL'):
+            try:
+                self.client = meilisearch.Client(
+                    settings.MEILISEARCH_URL,
+                    timeout=getattr(settings, 'MEILISEARCH_TIMEOUT', 5)
+                )
+                self.index_name = getattr(settings, 'MEILISEARCH_INDEX_NAME', 'notebooks')
+                self.meilisearch_enabled = True
+            except Exception as e:
+                logger.warning(f"Meilisearch initialization failed: {e}, falling back to PostgreSQL search")
+                self.meilisearch_enabled = False
+        else:
+            self.meilisearch_enabled = False
+            logger.info("Meilisearch not available, using PostgreSQL search")
 
     def create_index(self) -> None:
         """Create Meilisearch index with field configuration"""
+        if not self.meilisearch_enabled:
+            logger.info("Meilisearch not enabled, skipping index creation")
+            return
+
         try:
             # Create index with primary key
             self.client.create_index(self.index_name, {"primaryKey": "id"})
@@ -51,7 +73,7 @@ class SearchService:
 
             logger.info(f"Created Meilisearch index: {self.index_name}")
 
-        except MeilisearchError as e:
+        except Exception as e:
             logger.warning(f"Failed to create Meilisearch index (may already exist): {e}")
 
     def index_notebook(self, notebook: Notebook) -> None:
@@ -115,69 +137,108 @@ class SearchService:
             Dict with notebook_ids, total, from_meilisearch flag
         """
         try:
-            # Try Meilisearch first
-            index = self.client.index(self.index_name)
+            # Try Meilisearch first if enabled
+            if self.meilisearch_enabled:
+                try:
+                    # Try Meilisearch first
+                    index = self.client.index(self.index_name)
 
-            # Build filter for faceted search
-            filter_expr = None
-            if tab == "originals":
-                filter_expr = "parent_id IS NULL"
-            elif tab == "forks":
-                filter_expr = "parent_id IS NOT NULL"
+                    # Build filter for faceted search
+                    filter_expr = None
+                    if tab == "originals":
+                        filter_expr = "parent_id IS NULL"
+                    elif tab == "forks":
+                        filter_expr = "parent_id IS NOT NULL"
 
-            # Execute search
-            search_params = {"limit": limit}
-            if filter_expr:
-                search_params["filter"] = filter_expr
+                    # Execute search
+                    search_params = {"limit": limit}
+                    if filter_expr:
+                        search_params["filter"] = filter_expr
 
-            results = index.search(query, search_params)
+                    results = index.search(query, search_params)
 
-            # Extract notebook IDs
-            notebook_ids = [int(hit["id"]) for hit in results.get("hits", [])]
-            total = results.get("estimatedTotalHits", 0)
+                    # Extract notebook IDs
+                    notebook_ids = [int(hit["id"]) for hit in results.get("hits", [])]
+                    total = results.get("estimatedTotalHits", 0)
 
-            return {
-                "notebook_ids": notebook_ids,
-                "total": total,
-                "from_meilisearch": True
-            }
+                    return {
+                        "notebook_ids": notebook_ids,
+                        "total": total,
+                        "from_meilisearch": True
+                    }
 
-        except MeilisearchCommunicationError:
-            # Fallback to PostgreSQL
-            logger.warning("Meilisearch unavailable, falling back to PostgreSQL LIKE search")
+                except Exception as e:
+                    # Fallback to PostgreSQL
+                    logger.warning(f"Meilisearch unavailable ({e}), falling back to PostgreSQL LIKE search")
 
-            # Build base query
-            notebooks_query = (
-                self.db.query(Notebook.id)
-                .join(User, Notebook.user_id == User.id)
-                .filter(Notebook.is_published == True)
-                .filter(Notebook.is_archived == False)
-                .filter(
-                    or_(
-                        Notebook.title.ilike(f"%{query}%"),
-                        User.username.ilike(f"%{query}%")
+                    # Build base query
+                    notebooks_query = (
+                        self.db.query(Notebook.id)
+                        .join(User, Notebook.user_id == User.id)
+                        .filter(Notebook.is_published == True)
+                        .filter(Notebook.is_archived == False)
+                        .filter(
+                            or_(
+                                Notebook.title.ilike(f"%{query}%"),
+                                User.username.ilike(f"%{query}%")
+                            )
+                        )
+                    )
+
+                    # Apply fork status filter
+                    if tab == "originals":
+                        notebooks_query = notebooks_query.filter(Notebook.parent_id.is_(None))
+                    elif tab == "forks":
+                        notebooks_query = notebooks_query.filter(Notebook.parent_id.isnot(None))
+
+                    # Execute query
+                    results = notebooks_query.limit(limit).all()
+                    notebook_ids = [row.id for row in results]
+
+                    # Get total count
+                    total = len(notebook_ids)
+
+                    return {
+                        "notebook_ids": notebook_ids,
+                        "total": total,
+                        "from_meilisearch": False
+                    }
+            else:
+                # Meilisearch not enabled, use PostgreSQL
+                logger.info("Meilisearch not enabled, using PostgreSQL search")
+
+                # Build base query
+                notebooks_query = (
+                    self.db.query(Notebook.id)
+                    .join(User, Notebook.user_id == User.id)
+                    .filter(Notebook.is_published == True)
+                    .filter(Notebook.is_archived == False)
+                    .filter(
+                        or_(
+                            Notebook.title.ilike(f"%{query}%"),
+                            User.username.ilike(f"%{query}%")
+                        )
                     )
                 )
-            )
 
-            # Apply fork status filter
-            if tab == "originals":
-                notebooks_query = notebooks_query.filter(Notebook.parent_id.is_(None))
-            elif tab == "forks":
-                notebooks_query = notebooks_query.filter(Notebook.parent_id.isnot(None))
+                # Apply fork status filter
+                if tab == "originals":
+                    notebooks_query = notebooks_query.filter(Notebook.parent_id.is_(None))
+                elif tab == "forks":
+                    notebooks_query = notebooks_query.filter(Notebook.parent_id.isnot(None))
 
-            # Execute query
-            results = notebooks_query.limit(limit).all()
-            notebook_ids = [row.id for row in results]
+                # Execute query
+                results = notebooks_query.limit(limit).all()
+                notebook_ids = [row.id for row in results]
 
-            # Get total count
-            total = len(notebook_ids)
+                # Get total count
+                total = len(notebook_ids)
 
-            return {
-                "notebook_ids": notebook_ids,
-                "total": total,
-                "from_meilisearch": False
-            }
+                return {
+                    "notebook_ids": notebook_ids,
+                    "total": total,
+                    "from_meilisearch": False
+                }
 
         except Exception as e:
             logger.error(f"Search failed: {e}")

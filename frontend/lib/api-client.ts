@@ -30,8 +30,17 @@ export interface AuthResponse {
 
 export interface ProfileCompletionData {
   username: string;
-  avatar_url?: string;
   bio?: string;
+}
+
+export interface AvatarUploadResponse {
+  avatar_url: string;
+}
+
+export interface AvatarCropData {
+  crop_x: number;
+  crop_y: number;
+  crop_size: number;
 }
 
 export interface NotebookCell {
@@ -288,6 +297,35 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async uploadMyAvatar(file: File, cropData: AvatarCropData): Promise<AvatarUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('crop_x', String(Math.round(cropData.crop_x)));
+    formData.append('crop_y', String(Math.round(cropData.crop_y)));
+    formData.append('crop_size', String(Math.round(cropData.crop_size)));
+
+    const response = await fetch(`${this.baseUrl}/profiles/me/avatar`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    if (!response.ok) {
+      let errorMessage = 'Failed to upload avatar';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || error.detail || errorMessage;
+      } catch {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+    return response.json();
+  }
+
+  async deleteMyAvatar(): Promise<void> {
+    await this.request('/profiles/me/avatar', { method: 'DELETE' });
   }
 
   async getProfileStats(): Promise<{ published_notebook_count: number; likes_received_count: number }> {

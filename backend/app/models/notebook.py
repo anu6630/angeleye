@@ -25,9 +25,18 @@ class Notebook(Base):
     output_url = Column(Text, nullable=True)  # Public CDN URL
     compiled_at = Column(DateTime(timezone=True), nullable=True)  # Last compilation time
 
+    # Dataset used for last compilation (links notebook to its data source)
+    dataset_id = Column(Integer, ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # View count (DISC-05: View tracking via Redis, batch synced to DB)
     # Per CONTEXT.md D-31: Stored in Redis, synced to DB every 5 minutes
     view_count = Column(Integer, nullable=True, server_default='0')
+
+    # Photo banner (per-notebook hero image)
+    banner_s3_key = Column(String(500), nullable=True)
+    banner_thumbnail_s3_key = Column(String(500), nullable=True)
+    banner_uploaded_at = Column(DateTime(timezone=True), nullable=True)
+    banner_content_type = Column(String(50), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -37,6 +46,7 @@ class Notebook(Base):
     cells = relationship("NotebookCell", back_populates="notebook", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="notebook", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="notebook", cascade="all, delete-orphan")
+    dataset = relationship("Dataset", foreign_keys=[dataset_id])
 
     # Self-referential relationships for fork lineage
     parent = relationship("Notebook", remote_side=[id], foreign_keys=[parent_id], backref="forks")

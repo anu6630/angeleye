@@ -3,7 +3,7 @@
  *
  * Configures global mocks and test utilities for component testing
  */
-import { expect, afterEach, vi } from 'vitest'
+import { expect, afterEach, vi, beforeAll, afterAll } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
 

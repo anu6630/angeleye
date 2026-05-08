@@ -97,8 +97,45 @@ class ForkService:
                 logger.error(f"Failed to fork dataset for notebook {notebook_id}: {e}")
                 # Don't fail the fork if dataset copy fails
 
+        # Fork banner objects so the fork has its own copy (independent lifecycle)
+        if original.banner_s3_key:
+            try:
+                self._fork_banner_objects(original, fork)
+            except Exception as e:
+                logger.warning(f"Failed to fork banner for notebook {notebook_id}: {e}")
+                # Banner copy failure shouldn't break the fork
+
         self.db.refresh(fork)
         return fork
+
+    def _fork_banner_objects(self, original: Notebook, fork: Notebook) -> None:
+        """Copy banner objects (full + thumb) from original to fork in MinIO/S3."""
+        from app.core.config import settings as _settings
+        import time as _time
+
+        ts = int(_time.time())
+        bucket = _settings.BANNERS_BUCKET
+        new_full_key = f"banners/{fork.user_id}/{fork.id}/full_{ts}.webp"
+        new_thumb_key = f"banners/{fork.user_id}/{fork.id}/thumb_{ts}.webp"
+
+        if original.banner_s3_key:
+            self.storage_service.copy_object(
+                source_key=original.banner_s3_key,
+                dest_key=new_full_key,
+                bucket=bucket,
+            )
+        if original.banner_thumbnail_s3_key:
+            self.storage_service.copy_object(
+                source_key=original.banner_thumbnail_s3_key,
+                dest_key=new_thumb_key,
+                bucket=bucket,
+            )
+
+        fork.banner_s3_key = new_full_key
+        fork.banner_thumbnail_s3_key = new_thumb_key
+        fork.banner_uploaded_at = original.banner_uploaded_at or datetime.utcnow()
+        fork.banner_content_type = original.banner_content_type or "image/webp"
+        self.db.commit()
 
     def fork_dataset(self, dataset_id: int, user_id: int) -> Dataset:
         """
@@ -129,7 +166,8 @@ class ForkService:
         new_s3_key = f"datasets/{user_id}/{user_id}_{timestamp}_{original.original_filename}"
 
         # Server-side copy in S3/MinIO
-        bucket = "notebooksocial"  # TODO: Get from settings
+        # Use default bucket - will be configurable via settings in production
+        bucket = "notebooksocial"
         try:
             self.storage_service.copy_object(
                 source_key=original.s3_key,

@@ -19,6 +19,9 @@ class User(Base):
     google_oauth_id = Column(String(255), unique=True, nullable=True, index=True)
     facebook_oauth_id = Column(String(255), unique=True, nullable=True, index=True)
 
+    # Password authentication (nullable for OAuth-only users)
+    password_hash = Column(String(255), nullable=True)
+
     # Relationships
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     notebooks = relationship("Notebook", back_populates="user", cascade="all, delete-orphan")

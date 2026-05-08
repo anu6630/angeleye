@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,18 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useCompilationStore } from '@/stores/compilation-store';
-import { Send } from 'lucide-react';
+import { useNotebookStore } from '@/stores/notebook-store';
+import { useToast } from '@/hooks/use-toast';
+import {
+  Send,
+  Loader2,
+  FileSpreadsheet,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Save,
+  ExternalLink,
+} from 'lucide-react';
 
 interface PublishDialogProps {
   open: boolean;
@@ -20,80 +31,250 @@ interface PublishDialogProps {
 }
 
 export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogProps) {
-  const { outputUrl, outputKey, publishNotebook, compilationStatus } = useCompilationStore();
+  const { toast } = useToast();
+  const {
+    isCompiling,
+    compilationStatus,
+    compilationResult,
+    datasets: datasetsRaw,
+    isLoadingDatasets,
+    compileNotebook,
+    loadDatasets,
+    publishNotebook,
+    outputUrl,
+    outputKey,
+  } = useCompilationStore();
+  const datasets = datasetsRaw ?? [];
+
+  const [localDataset, setLocalDataset] = useState<number | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [flowError, setFlowError] = useState<string | null>(null);
+  /** Hide dataset picker after user starts a run; reset on error so they can retry. */
+  const [flowStarted, setFlowStarted] = useState(false);
 
-  const handlePublish = async () => {
-    if (!notebookId || !outputKey) return;
+  useEffect(() => {
+    if (open) {
+      loadDatasets();
+      setPublished(false);
+      setFlowError(null);
+      setFlowStarted(false);
+    }
+  }, [open, loadDatasets]);
 
-    setIsPublishing(true);
+  const { saveNotebook } = useNotebookStore();
+  const busy = isCompiling || isPublishing;
+
+  const runPublish = async () => {
+    if (!notebookId) return;
+    setFlowError(null);
+    setFlowStarted(true);
+
     try {
-      await publishNotebook(notebookId, outputKey);
+      // Always save latest cell content before compiling so the server
+      // builds what the user actually typed, not stale DB content.
+      await saveNotebook();
+      await compileNotebook(notebookId, localDataset ?? undefined);
+      const s = useCompilationStore.getState();
+      if (s.compilationStatus !== 'success' || !s.outputKey) {
+        const msg =
+          s.compilationResult?.error ||
+          s.compilationResult?.result?.error ||
+          'Compilation did not finish successfully. Fix any errors and try again.';
+        throw new Error(msg);
+      }
+
+      const key = s.outputKey;
+      setIsPublishing(true);
+      await publishNotebook(notebookId, key, localDataset ?? undefined);
       setPublished(true);
-    } catch (error) {
-      console.error('Failed to publish:', error);
+      toast({
+        title: 'Published',
+        description: 'Your notebook is live on the feed.',
+      });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Publish failed';
+      setFlowError(message);
+      setFlowStarted(false);
+      toast({
+        variant: 'destructive',
+        title: 'Publish failed',
+        description: message,
+      });
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const handleClose = () => {
-    onOpenChange(false);
-    setPublished(false);
+  const handleDialogChange = (next: boolean) => {
+    if (!next) {
+      setPublished(false);
+      setFlowError(null);
+      onOpenChange(false);
+    }
   };
 
-  const canPublish = compilationStatus === 'success' && outputKey;
+  const statusMessage = () => {
+    if (!notebookId) return 'Save your notebook before publishing.';
+    if (flowError) return flowError;
+    if (published) return 'Your notebook has been published to the social feed.';
+    if (isPublishing) return 'Publishing to the feed…';
+    if (isCompiling || compilationStatus === 'pending' || compilationStatus === 'processing') {
+      return compilationStatus === 'pending'
+        ? 'Submitting build…'
+        : 'Building your notebook in an isolated container…';
+    }
+    if (compilationStatus === 'failed') {
+      const detail =
+        compilationResult?.error ||
+        compilationResult?.result?.error ||
+        (!compilationResult
+          ? 'No error details (often after a page reload). Try Publish again, or check the Celery worker logs.'
+          : null);
+      return `Build failed: ${detail || 'Unknown error'}`;
+    }
+    return 'Choose an optional dataset, then click Publish. We build on the server, then push to the feed.';
+  };
+
+  const statusIcon = () => {
+    if (!notebookId) return <Save className="h-5 w-5 text-amber-500" />;
+    if (published) return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+    if (flowError || compilationStatus === 'failed')
+      return <XCircle className="h-5 w-5 text-red-500" />;
+    if (busy) return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
+    return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
+  };
+
+  const showDatasetPicker = notebookId && !published && !flowStarted && !busy;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Publish to Feed</DialogTitle>
+          <DialogTitle>Publish to feed</DialogTitle>
           <DialogDescription>
-            Publish your compiled notebook to the social feed for others to view.
+            One step: we run a production build of your notebook (same as when others view it), then
+            publish that output to your profile and the feed. Browser runs are only for drafting.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {!canPublish ? (
-            <div className="p-4 rounded-lg border bg-yellow-50 text-yellow-800">
-              <p className="text-sm">
-                Your notebook must be compiled successfully before you can publish it.
+          <div className="flex items-start gap-3 rounded-lg border bg-muted/50 p-4">
+            {statusIcon()}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Status</p>
+              <p className="text-sm text-muted-foreground">{statusMessage()}</p>
+            </div>
+          </div>
+
+          {!notebookId && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <p className="text-sm text-amber-900 dark:text-amber-100">
+                Save the notebook first using the Save button in the editor.
               </p>
             </div>
-          ) : !published ? (
-            <div className="space-y-3">
-              <p className="text-sm">
-                Your notebook is ready to publish. Once published, it will appear in the social
-                feed and other users will be able to view the compiled output.
-              </p>
-              <div className="p-3 rounded-lg border bg-muted">
-                <p className="text-xs text-muted-foreground">Output URL</p>
-                <p className="text-sm font-mono truncate">{outputUrl}</p>
-              </div>
+          )}
+
+          {showDatasetPicker && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Optional dataset</label>
+              {isLoadingDatasets ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading datasets…
+                </div>
+              ) : datasets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No datasets uploaded.{' '}
+                  <a href="/datasets" className="text-primary underline-offset-4 hover:underline">
+                    Upload a dataset
+                  </a>
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="publish-no-dataset"
+                      name="publish-dataset"
+                      checked={localDataset === null}
+                      onChange={() => setLocalDataset(null)}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="publish-no-dataset" className="cursor-pointer text-sm">
+                      No dataset
+                    </label>
+                  </div>
+                  {datasets.map((dataset) => (
+                    <div key={dataset.id} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        id={`publish-dataset-${dataset.id}`}
+                        name="publish-dataset"
+                        checked={localDataset === dataset.id}
+                        onChange={() => setLocalDataset(dataset.id)}
+                        className="h-4 w-4"
+                      />
+                      <label
+                        htmlFor={`publish-dataset-${dataset.id}`}
+                        className="flex flex-1 cursor-pointer items-center gap-2 text-sm"
+                      >
+                        <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                        <span>{dataset.original_filename}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({dataset.row_count ?? 0} rows)
+                        </span>
+                      </label>
+                    </div>
+                  ))}
+                  {localDataset !== null && (() => {
+                    const ds = datasets.find((d) => d.id === localDataset);
+                    return ds ? (
+                      <p className="rounded bg-muted px-3 py-2 font-mono text-xs text-muted-foreground">
+                        pd.read_csv(&apos;{ds.original_filename}&apos;)
+                      </p>
+                    ) : null;
+                  })()}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="p-4 rounded-lg border bg-green-50 text-green-800">
-              <p className="text-sm font-medium">
-                Your notebook has been published to the social feed!
-              </p>
+          )}
+
+          {flowStarted && compilationStatus === 'success' && outputUrl && !published && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => window.open(outputUrl, '_blank', 'noopener,noreferrer')}
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Preview build output
+            </Button>
+          )}
+
+          {published && (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900 dark:border-green-900 dark:bg-green-950/30 dark:text-green-100">
+              You can close this dialog or open the feed to see your notebook.
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isPublishing}>
+          <Button variant="outline" onClick={() => handleDialogChange(false)} disabled={busy}>
             {published ? 'Close' : 'Cancel'}
           </Button>
-          {canPublish && !published && (
-            <Button onClick={handlePublish} disabled={isPublishing}>
-              {isPublishing ? (
-                'Publishing...'
+          {notebookId && !published && (
+            <Button onClick={runPublish} disabled={busy}>
+              {busy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isPublishing ? 'Publishing…' : isCompiling ? 'Building…' : 'Working…'}
+                </>
               ) : (
                 <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Publish to Feed
+                  <Send className="mr-2 h-4 w-4" />
+                  Publish
                 </>
               )}
             </Button>

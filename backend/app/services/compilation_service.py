@@ -8,9 +8,13 @@ STOR-06: Static assets optimized for delivery
 from sqlalchemy.orm import Session
 from typing import Optional, Tuple
 import os
+import shutil
+import tempfile
 from app.models.notebook import Notebook
+from app.models.dataset import Dataset
 from app.core.container import ContainerExecutor
 from app.services.storage_service import StorageService
+from app.services.dataset_service import DatasetService
 from app.core.config import settings
 import logging
 from PIL import Image
@@ -39,6 +43,7 @@ class CompilationService:
         self.db = db
         self.executor = ContainerExecutor()
         self.storage = StorageService()
+        self.dataset_service = DatasetService(db)
 
     def _optimize_html_images(self, html_content: str) -> Tuple[str, int]:
         """
@@ -120,6 +125,65 @@ class CompilationService:
         logger.info(f"Image optimization saved {total_saved} bytes")
         return optimized_html, total_saved
 
+    def _inline_local_assets(
+        self,
+        html_content: str,
+        asset_paths: list,
+        asset_filenames: list,
+    ) -> str:
+        """
+        Replace bare relative <img src="filename"> references with data: URIs.
+
+        nbconvert leaves Markdown ![](file.png) and HTML <img src="file.png"> as
+        relative paths in the output HTML.  Because we render the HTML inside an
+        iframe via srcDoc and lock down loads with CSP "img-src 'self' data:",
+        relative references can never resolve.  Inlining each known local asset
+        as a data URI makes Markdown + HTML methods work alongside the
+        IPython.display path which already auto-embeds.
+
+        Args:
+            html_content: Rendered HTML from nbconvert
+            asset_paths: Local filesystem paths of uploaded assets
+            asset_filenames: Original filenames matching asset_paths
+
+        Returns:
+            HTML with local asset references replaced by data: URIs
+        """
+        if not asset_paths:
+            return html_content
+
+        import mimetypes
+        import re as _re
+
+        for src_path, original_name in zip(asset_paths, asset_filenames):
+            if not original_name or not src_path or not os.path.exists(src_path):
+                continue
+            mime, _ = mimetypes.guess_type(original_name)
+            if not mime or not mime.startswith('image/'):
+                continue  # Only inline image assets; CSV etc. should never appear in <img>
+            try:
+                with open(src_path, 'rb') as f:
+                    encoded = base64.b64encode(f.read()).decode('ascii')
+            except Exception as e:
+                logger.warning(f"Could not inline asset {original_name}: {e}")
+                continue
+            data_uri = f'data:{mime};base64,{encoded}'
+            # Match src="filename" or src='filename' with the exact basename only.
+            # Use the original (unsafe) name from the user; basename was already
+            # enforced upstream, but escape regex metacharacters defensively.
+            escaped = _re.escape(original_name)
+            patterns = [
+                _re.compile(rf'src="{escaped}"'),
+                _re.compile(rf"src='{escaped}'"),
+            ]
+            replacements = 0
+            for pat in patterns:
+                html_content, n = pat.subn(f'src="{data_uri}"', html_content)
+                replacements += n
+            logger.info(f"Inlined asset '{original_name}' into {replacements} <img> tag(s)")
+
+        return html_content
+
     def _check_output_size(self, html_content: str, max_size_mb: int = 10) -> bool:
         """
         Check if output HTML size is within limits.
@@ -139,15 +203,19 @@ class CompilationService:
         self,
         notebook_id: int,
         dataset_id: Optional[int] = None,
-        output_dir: str = "/tmp/notebooks"
+        user_id: Optional[int] = None,
+        output_dir: str = "/tmp/notebooks",
+        dataset_ids: Optional[list] = None,
     ) -> dict:
         """
         Compile a notebook and upload output to storage.
 
         Args:
             notebook_id: ID of notebook to compile
-            dataset_id: Optional dataset ID to mount in container
+            dataset_id: Legacy single asset ID to mount in container
+            user_id: ID of the requesting user (for asset ownership check)
             output_dir: Directory for temporary output files
+            dataset_ids: Optional list of asset IDs to mount (datasets/images)
 
         Returns:
             Dict with compilation result:
@@ -157,10 +225,8 @@ class CompilationService:
             - output_key: S3 key of output (if success)
             - error: Error message (if failed)
         """
-        # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
 
-        # Get notebook from database
         notebook = self.db.query(Notebook).filter(Notebook.id == notebook_id).first()
         if not notebook:
             return {
@@ -169,7 +235,6 @@ class CompilationService:
                 'error': 'Notebook not found'
             }
 
-        # Build notebook data structure
         notebook_data = {
             'id': notebook.id,
             'title': notebook.title,
@@ -183,25 +248,55 @@ class CompilationService:
             ]
         }
 
-        # Download dataset if provided (TODO: implement in future plan)
-        dataset_path = None
-        if dataset_id:
-            logger.info(f"Dataset {dataset_id} requested - TODO: download from S3")
+        # Resolve asset id list (merge legacy single + new list, dedup, preserve order)
+        resolved_ids: list = []
+        seen: set = set()
+        if dataset_id is not None:
+            resolved_ids.append(dataset_id)
+            seen.add(dataset_id)
+        for did in (dataset_ids or []):
+            if did not in seen:
+                resolved_ids.append(did)
+                seen.add(did)
 
-        # Execute notebook in container
+        # Download every asset from S3 into a single shared temp dir for container mounting
+        dataset_paths: list[str] = []
+        dataset_filenames: list[str] = []
+        dataset_tmp_dir: Optional[str] = None
+        if resolved_ids:
+            try:
+                dataset_tmp_dir = tempfile.mkdtemp(prefix="nb_dataset_")
+                for did in resolved_ids:
+                    p, fname = self.dataset_service.download_for_compilation(
+                        dataset_id=did,
+                        user_id=user_id or notebook.user_id,
+                        dest_dir=dataset_tmp_dir,
+                    )
+                    dataset_paths.append(p)
+                    dataset_filenames.append(fname)
+                    logger.info(f"Asset {did} ready at {p} (filename: {fname})")
+            except Exception as e:
+                logger.error(f"Failed to download assets {resolved_ids}: {e}")
+                if dataset_tmp_dir and os.path.exists(dataset_tmp_dir):
+                    shutil.rmtree(dataset_tmp_dir, ignore_errors=True)
+                return {
+                    'status': 'failed',
+                    'notebook_id': notebook_id,
+                    'error': f"Could not load asset: {e}"
+                }
+
         try:
             success, result, error = self.executor.execute_notebook_to_file(
                 notebook_data=notebook_data,
                 output_dir=output_dir,
-                dataset_path=dataset_path,
+                dataset_paths=dataset_paths,
+                dataset_filenames=dataset_filenames,
                 timeout=300  # 5 minutes (SEC-02)
             )
 
-            # Cleanup dataset temp file if exists
-            if dataset_path and os.path.exists(dataset_path):
-                os.unlink(dataset_path)
-
             if not success:
+                if dataset_tmp_dir and os.path.exists(dataset_tmp_dir):
+                    shutil.rmtree(dataset_tmp_dir, ignore_errors=True)
                 return {
                     'status': 'failed',
                     'notebook_id': notebook_id,
@@ -209,6 +304,37 @@ class CompilationService:
                 }
 
             output_file = result  # result is the output file path on success
+
+            # Validate that the output file actually exists on the filesystem
+            if not os.path.exists(output_file):
+                logger.error(f"Output file {output_file} was not found after container execution")
+                if dataset_tmp_dir and os.path.exists(dataset_tmp_dir):
+                    shutil.rmtree(dataset_tmp_dir, ignore_errors=True)
+                return {
+                    'status': 'failed',
+                    'notebook_id': notebook_id,
+                    'error': f"Output file not generated: {output_file}"
+                }
+
+            # Inline local image assets into data URIs while we still have the
+            # source files available (asset tmp dir is deleted right after).
+            if dataset_paths:
+                try:
+                    with open(output_file, 'r') as f:
+                        html_pre = f.read()
+                    html_post = self._inline_local_assets(html_pre, dataset_paths, dataset_filenames)
+                    if html_post != html_pre:
+                        with open(output_file, 'w') as f:
+                            f.write(html_post)
+                except Exception as e:
+                    logger.warning(f"Asset inlining step failed (continuing): {e}")
+
+            # Now safe to remove the temp asset dir
+            if dataset_tmp_dir and os.path.exists(dataset_tmp_dir):
+                shutil.rmtree(dataset_tmp_dir, ignore_errors=True)
+
+            # Ensure buckets exist before uploading (INFRA-08)
+            self.storage.ensure_bucket_exists(settings.NOTEBOOKS_BUCKET)
 
             # Upload output to S3/MinIO
             output_key = self._upload_output(output_file, notebook_id)
@@ -260,9 +386,25 @@ class CompilationService:
             # Optimize embedded images (STOR-06)
             optimized_html, bytes_saved = self._optimize_html_images(html_content)
 
-            # Check output size limit
+            # SEC: block external image loads at view time. Allow same-origin and
+            # data: URIs so matplotlib base64 charts and locally-uploaded assets
+            # (embedded as data: by nbconvert / IPython.display) keep rendering.
+            csp_meta = (
+                '<meta http-equiv="Content-Security-Policy" '
+                "content=\"img-src 'self' data:;\">"
+            )
+            if '<head>' in optimized_html:
+                optimized_html = optimized_html.replace('<head>', f'<head>{csp_meta}', 1)
+            else:
+                optimized_html = f'{csp_meta}\n{optimized_html}'
+
+            # Enforce output size limit
             if not self._check_output_size(optimized_html):
-                logger.warning(f"Notebook {notebook_id} output exceeds size limit")
+                size_mb = len(optimized_html.encode('utf-8')) / (1024 * 1024)
+                raise ValueError(
+                    f"Notebook output is {size_mb:.1f}MB, which exceeds the 10MB limit. "
+                    "Reduce the number of plots or use lower-resolution figures."
+                )
 
             # Write optimized content back to file
             with open(output_file, 'w') as f:

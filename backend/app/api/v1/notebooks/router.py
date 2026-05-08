@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, File, HTTPException, status, Request, Query, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional
 
 from app.db.session import get_db
 from app.services.notebook_service import NotebookService
 from app.services.feed_service import FeedService
 from app.services.fork_service import ForkService
 from app.services.storage_service import StorageService
+from app.services.banner_service import BannerService, build_banner_urls
 from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
 from app.api.v1.dependencies import require_auth, optional_auth
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -27,57 +30,6 @@ async def create_notebook(
 
     notebook_service = NotebookService(db)
     notebook = notebook_service.create_notebook(user_id, notebook_data)
-
-    return notebook
-
-
-@router.get("/notebooks/{notebook_id}", response_model=NotebookResponse)
-async def get_notebook(
-    notebook_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Get notebook by ID (NOTE-02, VIEW-01)
-
-    Public endpoint - no authentication required for viewing.
-    Returns notebook with all cells.
-
-    Per CONTEXT.md D-31: View tracking on notebook view
-    Per CONTEXT.md D-30: Engagement metrics included in response
-    """
-    # Get optional user ID for view tracking
-    user_id = await optional_auth(request)
-
-    notebook_service = NotebookService(db)
-    notebook = notebook_service.get_notebook(notebook_id)
-
-    if not notebook:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notebook not found"
-        )
-
-    # Record view (async, don't fail)
-    feed_service = FeedService(db)
-    try:
-        feed_service.record_view(notebook_id, user_id)
-    except Exception:
-        pass  # View tracking failure shouldn't break the request
-
-    # Get engagement metrics
-    try:
-        metrics = feed_service.get_engagement_metrics([notebook_id])
-        if notebook_id in metrics:
-            # Enhance response with metrics
-            if hasattr(notebook, 'like_count'):
-                notebook.like_count = metrics[notebook_id]["likes"]
-            if hasattr(notebook, 'comment_count'):
-                notebook.comment_count = metrics[notebook_id]["comments"]
-            # Add view_count if not present
-            if not hasattr(notebook, 'view_count'):
-                notebook.view_count = metrics[notebook_id]["views"]
-    except Exception:
-        pass  # Metrics failure shouldn't break the request
 
     return notebook
 
@@ -191,6 +143,78 @@ async def get_user_notebooks(
     }
 
 
+@router.put("/notebooks/{notebook_id}/cells", status_code=200)
+async def update_notebook_cells(
+    request: Request,
+    notebook_id: int,
+    cells_data: list[dict],
+    db: Session = Depends(get_db)
+):
+    """Replace all cells for a notebook (NOTE-05 - save cell content).
+
+    Accepts a list of: {cell_type, content, order_index}
+    Deletes existing cells and inserts the new set atomically.
+    Requires authentication; user must own the notebook.
+    """
+    from app.models.notebook import Notebook
+    from app.models.notebook_cell import NotebookCell as NotebookCellModel
+
+    user_id = await require_auth(request)
+    notebook = db.query(Notebook).filter(Notebook.id == notebook_id).first()
+    if not notebook:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    if notebook.user_id != user_id:
+        raise HTTPException(status_code=403, detail="You do not own this notebook")
+
+    # Delete existing cells
+    db.query(NotebookCellModel).filter(NotebookCellModel.notebook_id == notebook_id).delete()
+
+    # Insert new cells
+    for i, cell in enumerate(cells_data):
+        db.add(NotebookCellModel(
+            notebook_id=notebook_id,
+            cell_type=cell.get("cell_type", "code"),
+            content=cell.get("content", ""),
+            order_index=cell.get("order_index", i),
+        ))
+
+    db.commit()
+    return {"notebook_id": notebook_id, "cells_saved": len(cells_data)}
+
+
+@router.get("/notebooks/{notebook_id}/output")
+async def get_notebook_output(
+    notebook_id: int,
+    db: Session = Depends(get_db)
+):
+    """Proxy pre-rendered notebook HTML from storage (VIEW-03).
+
+    Streams the compiled HTML output so the browser doesn't need to
+    access MinIO directly (avoids internal hostname / presigned URL issues).
+    """
+    from app.models.notebook import Notebook
+    notebook = db.query(Notebook).filter(Notebook.id == notebook_id).first()
+    if not notebook:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    if not notebook.output_s3_key:
+        raise HTTPException(status_code=404, detail="No compiled output available")
+
+    storage = StorageService()
+    try:
+        obj = storage.s3_client.get_object(
+            Bucket=settings.NOTEBOOKS_BUCKET,
+            Key=notebook.output_s3_key
+        )
+        body = obj['Body']
+        return StreamingResponse(
+            body,
+            media_type="text/html",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Output not found: {str(e)}")
+
+
 @router.get("/notebooks/feed")
 async def get_feed(
     cursor: Optional[str] = None,
@@ -211,6 +235,116 @@ async def get_feed(
     feed = feed_service.get_feed(cursor, limit)
 
     return feed
+
+
+@router.post("/notebooks/{notebook_id}/banner")
+async def upload_notebook_banner(
+    request: Request,
+    notebook_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Upload (or replace) the photo banner for a notebook (owner-only).
+
+    Accepts PNG, JPEG, or WEBP up to 10 MB. Stores a full-resolution image
+    (long-side capped at 2400 px) and a 16:9 cover thumbnail (800x450).
+    """
+    user_id = await require_auth(request)
+    banner_service = BannerService(db)
+    notebook, full_url, thumb_url = banner_service.upload_banner(notebook_id, user_id, file)
+    return {
+        "banner_url": full_url,
+        "banner_thumbnail_url": thumb_url,
+        "banner_uploaded_at": notebook.banner_uploaded_at.isoformat() if notebook.banner_uploaded_at else None,
+    }
+
+
+@router.delete("/notebooks/{notebook_id}/banner", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_notebook_banner(
+    request: Request,
+    notebook_id: int,
+    db: Session = Depends(get_db),
+):
+    """Remove the banner from a notebook (owner-only)."""
+    user_id = await require_auth(request)
+    banner_service = BannerService(db)
+    banner_service.delete_banner(notebook_id, user_id)
+    return None
+
+
+@router.get("/notebooks/{notebook_id}/banner")
+async def get_notebook_banner(notebook_id: int, db: Session = Depends(get_db)):
+    """Stream the full-resolution banner image (public)."""
+    banner_service = BannerService(db)
+    body, content_type = banner_service.stream_banner(notebook_id, "full")
+    return StreamingResponse(
+        body,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
+@router.get("/notebooks/{notebook_id}/banner/thumb")
+async def get_notebook_banner_thumbnail(notebook_id: int, db: Session = Depends(get_db)):
+    """Stream the 16:9 banner thumbnail (public)."""
+    banner_service = BannerService(db)
+    body, content_type = banner_service.stream_banner(notebook_id, "thumb")
+    return StreamingResponse(
+        body,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
+@router.get("/notebooks/{notebook_id}", response_model=NotebookResponse)
+async def get_notebook(
+    notebook_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Get notebook by ID (NOTE-02, VIEW-01)
+
+    Public endpoint - no authentication required for viewing.
+    Returns notebook with all cells.
+
+    Per CONTEXT.md D-31: View tracking on notebook view
+    Per CONTEXT.md D-30: Engagement metrics included in response
+    """
+    # Get optional user ID for view tracking
+    user_id = await optional_auth(request)
+
+    notebook_service = NotebookService(db)
+    notebook = notebook_service.get_notebook(notebook_id)
+
+    if not notebook:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found"
+        )
+
+    # Record view (async, don't fail)
+    feed_service = FeedService(db)
+    try:
+        feed_service.record_view(notebook_id, user_id)
+    except Exception:
+        pass  # View tracking failure shouldn't break the request
+
+    # Get engagement metrics
+    try:
+        metrics = feed_service.get_engagement_metrics([notebook_id])
+        if notebook_id in metrics:
+            # Enhance response with metrics
+            if hasattr(notebook, 'like_count'):
+                notebook.like_count = metrics[notebook_id]["likes"]
+            if hasattr(notebook, 'comment_count'):
+                notebook.comment_count = metrics[notebook_id]["comments"]
+            # Add view_count if not present
+            if not hasattr(notebook, 'view_count'):
+                notebook.view_count = metrics[notebook_id]["views"]
+    except Exception:
+        pass  # Metrics failure shouldn't break the request
+
+    return notebook
 
 
 @router.post("/notebooks/{notebook_id}/fork", response_model=NotebookResponse, status_code=status.HTTP_201_CREATED)
