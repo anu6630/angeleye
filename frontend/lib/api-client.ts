@@ -11,6 +11,15 @@ export interface User {
   created_at: string;
 }
 
+export interface PublicProfile {
+  username: string;
+  avatar_url?: string | null;
+  bio?: string | null;
+  published_notebook_count: number;
+  likes_received_count: number;
+  created_at: string;
+}
+
 export interface AuthResponse {
   user_id: number;
   username: string;
@@ -47,6 +56,8 @@ export interface NotebookResponse {
   title: string;
   user_id: number;
   is_published: boolean;
+  output_url?: string | null;
+  output_s3_key?: string | null;
   created_at: string;
   updated_at: string;
   like_count: number;
@@ -58,6 +69,10 @@ export interface NotebookResponse {
     username: string;
     avatar_url?: string | null;
   };
+  username?: string;
+  avatar_url?: string | null;
+  banner_url?: string | null;
+  banner_thumbnail_url?: string | null;
   parent_id?: number | null;
   root_id?: number | null;
 }
@@ -70,15 +85,40 @@ export interface NotebookCard {
   like_count: number;
   comment_count: number;
   view_count?: number;
+  banner_thumbnail_url?: string | null;
+  output_url?: string | null;
   created_at: string;
   parent_id?: number | null;
   root_id?: number | null;
+}
+
+export interface BannerUploadResponse {
+  banner_url: string;
+  banner_thumbnail_url: string;
+  banner_uploaded_at: string | null;
 }
 
 export interface FeedResponse {
   items: NotebookCard[];
   next_cursor: string | null;
   has_more: boolean;
+}
+
+export interface UserNotebooksResponse {
+  notebooks: NotebookResponse[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface NotebookForksResponse {
+  forks: NotebookResponse[];
+  total: number;
+}
+
+export interface ForkChainResponse {
+  chain: NotebookResponse[];
+  total: number;
 }
 
 export interface CommentCreate {
@@ -130,8 +170,8 @@ export interface AsyncCompilationResponse {
 }
 
 export interface CompilationStatusResponse {
-  task_id: string;
-  state: 'PENDING' | 'STARTED' | 'SUCCESS' | 'FAILURE' | 'RETRY';
+  task_id?: string;
+  state: 'PENDING' | 'STARTED' | 'SUCCESS' | 'FAILURE' | 'RETRY' | string;
   result?: CompilationResult;
   error?: string;
 }
@@ -148,6 +188,7 @@ export interface CompilationResult {
 export interface PublishRequest {
   notebook_id: number;
   output_key: string;
+  dataset_id?: number;
   auto_invalidate?: boolean;
 }
 
@@ -156,6 +197,14 @@ export interface PublishResponse {
   is_published: boolean;
   output_url: string;
   invalidation_id?: string;
+}
+
+export interface FollowersCountResponse {
+  followers_count: number;
+}
+
+export interface FollowingCountResponse {
+  following_count: number;
 }
 
 class ApiClient {
@@ -180,8 +229,19 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || error.message || 'Request failed');
+      let errorMessage = 'Unknown error';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || error.detail || JSON.stringify(error);
+      } catch (e) {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      console.error(`API Request failed: ${endpoint}`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorMessage
+      });
+      throw new Error(errorMessage);
     }
 
     // Handle 204 No Content (DELETE)
@@ -234,8 +294,8 @@ class ApiClient {
     return this.request('/profiles/stats');
   }
 
-  async getPublicProfile(username: string): Promise<User> {
-    return this.request<User>(`/profiles/${username}`);
+  async getPublicProfile(username: string): Promise<PublicProfile> {
+    return this.request<PublicProfile>(`/profiles/${username}`);
   }
 
   // Notebook endpoints
@@ -250,6 +310,13 @@ class ApiClient {
     return this.request<NotebookResponse>(`/notebooks/${id}`);
   }
 
+  async saveNotebookCells(id: number, cells: { cell_type: string; content: string; order_index: number }[]): Promise<void> {
+    await this.request<unknown>(`/notebooks/${id}/cells`, {
+      method: 'PUT',
+      body: JSON.stringify(cells),
+    });
+  }
+
   async updateNotebook(id: number, data: NotebookUpdate): Promise<NotebookResponse> {
     return this.request<NotebookResponse>(`/notebooks/${id}`, {
       method: 'PUT',
@@ -261,8 +328,53 @@ class ApiClient {
     return this.request(`/notebooks/${id}`, { method: 'DELETE' });
   }
 
-  async getUserNotebooks(): Promise<NotebookResponse[]> {
-    return this.request<NotebookResponse[]>('/notebooks');
+  async uploadBanner(notebookId: number, file: File): Promise<BannerUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${this.baseUrl}/notebooks/${notebookId}/banner`;
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to upload banner';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || error.detail || errorMessage;
+      } catch {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  async deleteBanner(notebookId: number): Promise<void> {
+    return this.request(`/notebooks/${notebookId}/banner`, { method: 'DELETE' });
+  }
+
+  async getUserNotebooks(skip: number = 0, limit: number = 20): Promise<UserNotebooksResponse> {
+    const raw = await this.request<UserNotebooksResponse | NotebookResponse[]>(
+      `/notebooks?skip=${skip}&limit=${limit}`
+    );
+    if (Array.isArray(raw)) {
+      return {
+        notebooks: raw,
+        total: raw.length,
+        skip,
+        limit,
+      };
+    }
+    return {
+      notebooks: raw.notebooks ?? [],
+      total: raw.total ?? raw.notebooks?.length ?? 0,
+      skip: raw.skip ?? skip,
+      limit: raw.limit ?? limit,
+    };
   }
 
   // Feed endpoint
@@ -270,7 +382,7 @@ class ApiClient {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor);
     const query = params.toString();
-    return this.request<FeedResponse>(`/notebooks/feed${query ? `?${query}` : ''}`);
+    return this.request<FeedResponse>(`/feed${query ? `?${query}` : ''}`);
   }
 
   // Like endpoint
@@ -310,8 +422,19 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || error.message || 'Request failed');
+      let errorMessage = 'Unknown error';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || error.detail || JSON.stringify(error);
+      } catch (e) {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      console.error(`API Request failed: ${url}`, {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorMessage
+      });
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -360,12 +483,12 @@ class ApiClient {
     });
   }
 
-  async getNotebookForks(notebookId: number, limit: number = 50): Promise<NotebookResponse[]> {
-    return this.request<NotebookResponse[]>(`/notebooks/${notebookId}/forks?limit=${limit}`);
+  async getNotebookForks(notebookId: number, limit: number = 50): Promise<NotebookForksResponse> {
+    return this.request<NotebookForksResponse>(`/notebooks/${notebookId}/forks?limit=${limit}`);
   }
 
-  async getForkChain(notebookId: number): Promise<NotebookResponse[]> {
-    return this.request<NotebookResponse[]>(`/notebooks/${notebookId}/chain`);
+  async getForkChain(notebookId: number): Promise<ForkChainResponse> {
+    return this.request<ForkChainResponse>(`/notebooks/${notebookId}/chain`);
   }
 
   // Follow operations (DISC-03)
@@ -382,12 +505,12 @@ class ApiClient {
     });
   }
 
-  async getUserFollowers(userId: number, limit: number = 50): Promise<User[]> {
-    return this.request<User[]>(`/follows/followers/${userId}?limit=${limit}`);
+  async getUserFollowers(userId: number): Promise<FollowersCountResponse> {
+    return this.request<FollowersCountResponse>(`/follows/followers/${userId}`);
   }
 
-  async getUserFollowing(userId: number, limit: number = 50): Promise<User[]> {
-    return this.request<User[]>(`/follows/following/${userId}?limit=${limit}`);
+  async getUserFollowing(userId: number): Promise<FollowingCountResponse> {
+    return this.request<FollowingCountResponse>(`/follows/following/${userId}`);
   }
 
   async checkFollowing(userId: number): Promise<{ is_following: boolean }> {

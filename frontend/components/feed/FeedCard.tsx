@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
@@ -15,6 +16,70 @@ interface FeedCardProps {
   notebook: NotebookResponse;
 }
 
+// CSS to hide code source in the feed preview
+const HIDE_CODE_CSS = `
+  .jp-CodeCell .jp-InputArea,
+  .jp-CodeCell .jp-Cell-inputCollapser,
+  .jp-CodeCell .jp-InputPrompt,
+  .jp-CodeCell .jp-CodeMirrorEditor,
+  .jp-CodeCell .jp-Editor,
+  .jp-InputPrompt,
+  .jp-OutputArea-prompt,
+  .input, .input_area,
+  div.input, div.input_area,
+  .prompt.input_prompt,
+  div.prompt.input_prompt,
+  .CodeMirror,
+  .in_prompt, .output_prompt { display: none !important; }
+
+  .jp-Cell { padding: 4px 0 !important; }
+  .cell { padding: 4px 0 !important; }
+  body { padding: 12px !important; background: transparent !important; margin: 0 !important; overflow: hidden !important; }
+  .jp-OutputArea-output { padding: 4px 0 !important; }
+  .output_area { padding: 4px 0 !important; }
+`;
+
+function NotebookPreview({ notebookId, outputUrl }: { notebookId: number; outputUrl: string }) {
+  const [html, setHtml] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchOutput() {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+        const res = await fetch(`${apiBase}/notebooks/${notebookId}/output`);
+        if (res.ok) {
+          const content = await res.text();
+          const styleTag = `<style>${HIDE_CODE_CSS}</style>`;
+          const finalHtml = content.includes('</head>')
+            ? content.replace('</head>', `${styleTag}</head>`)
+            : styleTag + content;
+          setHtml(finalHtml);
+        }
+      } catch (err) {
+        console.error('Failed to fetch notebook output for preview', err);
+      }
+    }
+    fetchOutput();
+  }, [notebookId]);
+
+  if (!html) return (
+    <div className="h-[300px] w-full bg-muted/20 animate-pulse flex items-center justify-center">
+      <p className="text-xs text-muted-foreground">Loading preview...</p>
+    </div>
+  );
+
+  return (
+    <div className="relative w-full h-[350px] overflow-hidden border-y border-border/40 bg-card">
+      <iframe
+        srcDoc={html}
+        className="w-full h-full border-0 pointer-events-none"
+        title="Notebook preview"
+      />
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+    </div>
+  );
+}
+
 export function FeedCard({ notebook }: FeedCardProps) {
   const {
     id,
@@ -24,6 +89,7 @@ export function FeedCard({ notebook }: FeedCardProps) {
     comment_count,
     view_count = 0,
     created_at,
+    output_url,
   } = notebook;
 
   const username = (notebook.user?.username || notebook.username || 'Unknown');
@@ -83,7 +149,9 @@ export function FeedCard({ notebook }: FeedCardProps) {
           </h3>
         </CardContent>
 
-        {bannerThumb && (
+        {output_url ? (
+          <NotebookPreview notebookId={id} outputUrl={output_url} />
+        ) : bannerThumb && (
           <div className="relative w-full overflow-hidden bg-muted border-y border-border/40">
             <div style={{ aspectRatio: '16 / 9' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}

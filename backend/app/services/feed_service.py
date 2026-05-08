@@ -71,7 +71,7 @@ class FeedService:
 
         # If not authenticated, return trending feed
         if user_id is None:
-            return self.get_trending_feed(limit, cursor)
+            return self.get_trending_feed(limit, cursor, None)
 
         # Try cache first (only if no cursor for pagination)
         cache_key = self.KEY_FEED_USER.format(user_id)
@@ -98,7 +98,7 @@ class FeedService:
 
         # Cold start fallback: 0 follows = 100% trending
         if following_count == 0:
-            return self.get_trending_feed(limit, cursor)
+            return self.get_trending_feed(limit, cursor, user_id)
 
         # Get followed notebooks
         followed_notebooks = self._get_followed_notebooks(user_id, limit)
@@ -164,7 +164,8 @@ class FeedService:
     def get_trending_feed(
         self,
         limit: int = 50,
-        cursor: Optional[str] = None
+        cursor: Optional[str] = None,
+        viewer_id: Optional[int] = None
     ) -> dict:
         """Get trending notebooks feed
 
@@ -182,6 +183,37 @@ class FeedService:
 
         # Fetch full notebooks
         notebooks = self._get_notebooks_by_ids(trending_ids)
+
+        # DISC-01: Mix in discovery (most recent notebooks that might not be trending yet)
+        if cursor is None:
+            # Refresh session to ensure we see the latest commits (DISC-01, DISC-02)
+            self.db.expire_all()
+            
+            from sqlalchemy.orm import joinedload
+            recent_notebooks = (
+                self.db.query(Notebook)
+                .options(joinedload(Notebook.user))
+                .filter(Notebook.is_published == True, Notebook.is_archived == False)
+                .order_by(Notebook.created_at.desc())
+                .limit(10) # Increased limit to ensure discovery even with many rapid posts
+                .all()
+            )
+            
+            # Add recent notebooks to the top if not already there
+            # Ensure seen_ids check works with dicts (already in result format)
+            seen_ids = set()
+            for nb in notebooks:
+                if isinstance(nb, dict):
+                    seen_ids.add(nb.get('id'))
+                elif hasattr(nb, 'id'):
+                    seen_ids.add(nb.id)
+            
+            discovery_items = []
+            for rnb in recent_notebooks:
+                if rnb.id not in seen_ids:
+                    discovery_items.append(rnb)
+
+            notebooks = discovery_items + notebooks
 
         # Apply cursor pagination
         if cursor:
@@ -224,6 +256,12 @@ class FeedService:
                 self.redis.delete(cache_key)
             except Exception:
                 pass  # Redis failure shouldn't break operations
+        
+        # Also invalidate the user's own feed cache (DISC-01)
+        try:
+            self.redis.delete(self.KEY_FEED_USER.format(user_id))
+        except Exception:
+            pass
 
     def get_engagement_metrics(self, notebook_ids: List[int]) -> Dict[int, Dict[str, int]]:
         """Get engagement metrics for multiple notebooks
@@ -439,12 +477,24 @@ class FeedService:
             Dict representation of notebook
         """
         # Get basic info
+        username = None
+        avatar_url = None
+        
+        if hasattr(notebook, 'user') and notebook.user:
+            username = getattr(notebook.user, 'username', None)
+            avatar_url = getattr(notebook.user, 'avatar_url', None)
+            
+        from app.services.banner_service import build_banner_urls
+        _banner_full, banner_thumbnail_url = build_banner_urls(notebook)
+
         result = {
             "id": notebook.id,
             "title": notebook.title,
             "user_id": notebook.user_id,
-            "username": notebook.user.username if hasattr(notebook, 'user') and notebook.user else None,
-            "avatar_url": notebook.user.avatar_url if hasattr(notebook, 'user') and hasattr(notebook.user, 'avatar_url') else None,
+            "username": username,
+            "avatar_url": avatar_url,
+            "banner_thumbnail_url": banner_thumbnail_url,
+            "output_url": notebook.output_url,
             "created_at": notebook.created_at.isoformat() if notebook.created_at else None,
             "updated_at": notebook.updated_at.isoformat() if notebook.updated_at else None,
             "like_count": 0,
