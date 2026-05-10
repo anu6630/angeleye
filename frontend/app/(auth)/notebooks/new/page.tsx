@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { loadPyodideInstance } from '@/lib/pyodide-loader';
 import { NotebookEditor } from '@/components/notebook/NotebookEditor';
 import { useNotebookStore } from '@/stores/notebook-store';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function NewNotebookPage() {
+  const searchParams = useSearchParams();
+  const groupSlug = searchParams.get('group');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { reset } = useNotebookStore();
@@ -73,7 +76,7 @@ export default function NewNotebookPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <NotebookEditor />
+      <NotebookEditor defaultPublishGroupSlug={groupSlug || null} />
     </div>
   );
 }

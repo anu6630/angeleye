@@ -17,6 +17,8 @@ from app.models.notebook import Notebook
 from app.models.dataset import Dataset
 from app.services.trending_service import TrendingService
 from app.services.feed_service import FeedService
+from app.services.group_service import GroupService
+from app.models.group import Group
 
 router = APIRouter(prefix="/compilation", tags=["compilation"])
 
@@ -100,6 +102,14 @@ async def publish_notebook(
     if notebook.user_id != user_id:
         raise HTTPException(status_code=403, detail="Access denied")
 
+    if request.group_id is not None:
+        g = db.query(Group).filter(Group.id == request.group_id).first()
+        if not g:
+            raise HTTPException(status_code=404, detail="Group not found")
+        gs = GroupService(db)
+        if not gs.is_member(g.id, user_id):
+            raise HTTPException(status_code=403, detail="You must be a member of the group to post there")
+
     cdn_service = CDNService()
     invalidation_id = None
     if request.auto_invalidate and notebook.is_published:
@@ -109,16 +119,19 @@ async def publish_notebook(
     notebook.output_s3_key = request.output_key
     output_url = cdn_service.get_output_url(request.output_key)
     notebook.output_url = output_url
+    notebook.group_id = request.group_id
     # Persist dataset association so we know which data was used for this build
     if request.dataset_id is not None:
         notebook.dataset_id = request.dataset_id
     db.commit()
 
     # Update discovery mechanism (DISC-01, DISC-02)
-    # 1. Update trending score in Redis immediately
     trending_service = TrendingService(db)
     try:
-        trending_service.update_notebook_score(notebook.id)
+        if notebook.group_id is not None:
+            trending_service.remove_from_trending(notebook.id)
+        else:
+            trending_service.update_notebook_score(notebook.id)
     except Exception:
         pass  # Score update failure shouldn't break publishing
 

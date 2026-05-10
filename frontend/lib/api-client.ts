@@ -12,6 +12,7 @@ export interface User {
 }
 
 export interface PublicProfile {
+  user_id: number;
   username: string;
   avatar_url?: string | null;
   bio?: string | null;
@@ -84,12 +85,18 @@ export interface NotebookResponse {
   banner_thumbnail_url?: string | null;
   parent_id?: number | null;
   root_id?: number | null;
+  is_saved?: boolean;
+  save_count?: number;
+  group_id?: number | null;
+  group?: { slug: string; name: string } | null;
 }
 
 export interface NotebookCard {
   id: number;
   title: string;
   username: string;
+  user_id?: number;
+  user?: NotebookResponse['user'];
   avatar_url?: string | null;
   like_count: number;
   comment_count: number;
@@ -99,6 +106,10 @@ export interface NotebookCard {
   created_at: string;
   parent_id?: number | null;
   root_id?: number | null;
+  is_saved?: boolean;
+  save_count?: number;
+  group_id?: number | null;
+  group?: { slug: string; name: string } | null;
 }
 
 export interface BannerUploadResponse {
@@ -199,6 +210,8 @@ export interface PublishRequest {
   output_key: string;
   dataset_id?: number;
   auto_invalidate?: boolean;
+  /** Post to a group (omit or null = main feed + global discovery). */
+  group_id?: number | null;
 }
 
 export interface PublishResponse {
@@ -214,6 +227,70 @@ export interface FollowersCountResponse {
 
 export interface FollowingCountResponse {
   following_count: number;
+}
+
+/** Groups (social) */
+export interface GroupPublic {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  visibility: string;
+  join_policy: string;
+  icon_url?: string | null;
+  banner_url?: string | null;
+  member_count: number;
+  created_at?: string | null;
+  is_member: boolean;
+  is_admin: boolean;
+  can_join: boolean;
+  role?: string;
+}
+
+export interface GroupListApiResponse {
+  items: GroupPublic[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface GroupInvitePending {
+  id: number;
+  group: GroupPublic;
+  inviter: { id: number; username: string; avatar_url?: string | null };
+  created_at: string | null;
+}
+
+export interface GroupAdminPromoPending {
+  id: number;
+  group: GroupPublic;
+  proposer: { id: number; username: string; avatar_url?: string | null };
+  created_at: string | null;
+}
+
+export interface GroupMeResponse {
+  groups: GroupPublic[];
+  pending_invites: GroupInvitePending[];
+  pending_admin_promotions: GroupAdminPromoPending[];
+}
+
+export interface GroupCreatePayload {
+  name: string;
+  slug?: string;
+  description?: string;
+  visibility?: string;
+  join_policy?: string;
+}
+
+export interface GroupUpdatePayload {
+  name?: string;
+  description?: string;
+  visibility?: string;
+  join_policy?: string;
+}
+
+export interface GroupPresenceResponse {
+  online_user_count: number;
 }
 
 class ApiClient {
@@ -555,6 +632,30 @@ class ApiClient {
     return this.request<{ is_following: boolean }>(`/follows/check/${userId}`);
   }
 
+  async saveNotebook(notebookId: number): Promise<{ message: string; notebook_id: number }> {
+    return this.request<{ message: string; notebook_id: number }>('/saves', {
+      method: 'POST',
+      body: JSON.stringify({ notebook_id: notebookId }),
+    });
+  }
+
+  async unsaveNotebook(notebookId: number): Promise<{ message: string; notebook_id: number }> {
+    return this.request<{ message: string; notebook_id: number }>(`/saves/${notebookId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getSavedNotebooks(cursor?: string, limit: number = 50): Promise<FeedResponse> {
+    const params = new URLSearchParams();
+    params.set('limit', String(limit));
+    if (cursor) params.set('cursor', cursor);
+    return this.request<FeedResponse>(`/saves?${params.toString()}`);
+  }
+
+  async checkNotebookSaved(notebookId: number): Promise<{ is_saved: boolean }> {
+    return this.request<{ is_saved: boolean }>(`/saves/check/${notebookId}`);
+  }
+
   // Search operations (DISC-04, DISC-05)
   async searchNotebooks(
     query: string,
@@ -569,6 +670,159 @@ class ApiClient {
     return this.request<{ notebooks: NotebookResponse[]; total: number; empty_state: boolean; message?: string }>(
       `/search${queryString ? `?${queryString}` : ''}`
     );
+  }
+
+  // Groups
+  async listGroups(limit: number = 50, offset: number = 0): Promise<GroupListApiResponse> {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    return this.request<GroupListApiResponse>(`/groups?${params}`);
+  }
+
+  async getMyGroupsHub(): Promise<GroupMeResponse> {
+    return this.request<GroupMeResponse>('/groups/me');
+  }
+
+  async getGroup(slug: string): Promise<GroupPublic> {
+    return this.request<GroupPublic>(`/groups/${encodeURIComponent(slug)}`);
+  }
+
+  async getGroupPosts(
+    slug: string,
+    options?: { cursor?: string | null; limit?: number }
+  ): Promise<FeedResponse> {
+    const params = new URLSearchParams();
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit != null) params.set('limit', String(options.limit));
+    const q = params.toString();
+    return this.request<FeedResponse>(
+      `/groups/${encodeURIComponent(slug)}/posts${q ? `?${q}` : ''}`
+    );
+  }
+
+  async createGroup(payload: GroupCreatePayload): Promise<GroupPublic> {
+    return this.request<GroupPublic>('/groups', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateGroup(slug: string, payload: GroupUpdatePayload): Promise<GroupPublic> {
+    return this.request<GroupPublic>(`/groups/${encodeURIComponent(slug)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async joinGroup(slug: string): Promise<GroupPublic> {
+    return this.request<GroupPublic>(`/groups/${encodeURIComponent(slug)}/join`, {
+      method: 'POST',
+    });
+  }
+
+  async leaveGroup(slug: string): Promise<void> {
+    return this.request<void>(`/groups/${encodeURIComponent(slug)}/members/me`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getGroupPresence(slug: string): Promise<GroupPresenceResponse> {
+    return this.request<GroupPresenceResponse>(`/groups/${encodeURIComponent(slug)}/presence`);
+  }
+
+  async postGroupPresenceHeartbeat(slug: string): Promise<void> {
+    return this.request<void>(`/groups/${encodeURIComponent(slug)}/presence/heartbeat`, {
+      method: 'POST',
+    });
+  }
+
+  async deleteGroupPresence(slug: string): Promise<void> {
+    return this.request<void>(`/groups/${encodeURIComponent(slug)}/presence`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createGroupInvite(slug: string, inviteeUserId: number): Promise<{
+    id: number;
+    group: GroupPublic;
+    invitee_user_id: number;
+    status: string;
+  }> {
+    return this.request(`/groups/${encodeURIComponent(slug)}/invites`, {
+      method: 'POST',
+      body: JSON.stringify({ invitee_user_id: inviteeUserId }),
+    });
+  }
+
+  async acceptGroupInvite(slug: string, inviteId: number): Promise<GroupPublic> {
+    return this.request<GroupPublic>(
+      `/groups/${encodeURIComponent(slug)}/invites/${inviteId}/accept`,
+      { method: 'POST' }
+    );
+  }
+
+  async rejectGroupInvite(slug: string, inviteId: number): Promise<void> {
+    return this.request<void>(
+      `/groups/${encodeURIComponent(slug)}/invites/${inviteId}/reject`,
+      { method: 'POST' }
+    );
+  }
+
+  async createGroupAdminRequest(slug: string, candidateUserId: number): Promise<{
+    id: number;
+    group: GroupPublic;
+    candidate_user_id: number;
+    status: string;
+  }> {
+    return this.request(`/groups/${encodeURIComponent(slug)}/admin-requests`, {
+      method: 'POST',
+      body: JSON.stringify({ candidate_user_id: candidateUserId }),
+    });
+  }
+
+  async acceptGroupAdminRequest(slug: string, requestId: number): Promise<GroupPublic> {
+    return this.request<GroupPublic>(
+      `/groups/${encodeURIComponent(slug)}/admin-requests/${requestId}/accept`,
+      { method: 'POST' }
+    );
+  }
+
+  async rejectGroupAdminRequest(slug: string, requestId: number): Promise<void> {
+    return this.request<void>(
+      `/groups/${encodeURIComponent(slug)}/admin-requests/${requestId}/reject`,
+      { method: 'POST' }
+    );
+  }
+
+  async uploadGroupIcon(slug: string, file: File): Promise<{ icon_url: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    const url = `${this.baseUrl}/groups/${encodeURIComponent(slug)}/icon`;
+    const response = await fetch(url, { method: 'POST', credentials: 'include', body: form });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async uploadGroupBanner(slug: string, file: File): Promise<{ banner_url: string }> {
+    const form = new FormData();
+    form.append('file', file);
+    const url = `${this.baseUrl}/groups/${encodeURIComponent(slug)}/banner`;
+    const response = await fetch(url, { method: 'POST', credentials: 'include', body: form });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }
+
+  async deleteGroupIcon(slug: string): Promise<void> {
+    return this.request<void>(`/groups/${encodeURIComponent(slug)}/icon`, { method: 'DELETE' });
+  }
+
+  async deleteGroupBanner(slug: string): Promise<void> {
+    return this.request<void>(`/groups/${encodeURIComponent(slug)}/banner`, { method: 'DELETE' });
   }
 }
 

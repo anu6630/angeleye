@@ -185,6 +185,7 @@ async def update_notebook_cells(
 @router.get("/notebooks/{notebook_id}/output")
 async def get_notebook_output(
     notebook_id: int,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Proxy pre-rendered notebook HTML from storage (VIEW-03).
@@ -192,9 +193,12 @@ async def get_notebook_output(
     Streams the compiled HTML output so the browser doesn't need to
     access MinIO directly (avoids internal hostname / presigned URL issues).
     """
-    from app.models.notebook import Notebook
-    notebook = db.query(Notebook).filter(Notebook.id == notebook_id).first()
+    user_id = await optional_auth(request)
+    notebook_service = NotebookService(db)
+    notebook = notebook_service.get_notebook_model(notebook_id)
     if not notebook:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    if not notebook_service.can_view_notebook(notebook, user_id):
         raise HTTPException(status_code=404, detail="Notebook not found")
     if not notebook.output_s3_key:
         raise HTTPException(status_code=404, detail="No compiled output available")
@@ -203,7 +207,7 @@ async def get_notebook_output(
     try:
         obj = storage.s3_client.get_object(
             Bucket=settings.NOTEBOOKS_BUCKET,
-            Key=notebook.output_s3_key
+            Key=notebook.output_s3_key,
         )
         body = obj['Body']
         return StreamingResponse(
@@ -273,8 +277,17 @@ async def delete_notebook_banner(
 
 
 @router.get("/notebooks/{notebook_id}/banner")
-async def get_notebook_banner(notebook_id: int, db: Session = Depends(get_db)):
+async def get_notebook_banner(
+    notebook_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     """Stream the full-resolution banner image (public)."""
+    user_id = await optional_auth(request)
+    notebook_service = NotebookService(db)
+    nb = notebook_service.get_notebook_model(notebook_id)
+    if not nb or not notebook_service.can_view_notebook(nb, user_id):
+        raise HTTPException(status_code=404, detail="Notebook not found")
     banner_service = BannerService(db)
     body, content_type = banner_service.stream_banner(notebook_id, "full")
     return StreamingResponse(
@@ -285,8 +298,17 @@ async def get_notebook_banner(notebook_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/notebooks/{notebook_id}/banner/thumb")
-async def get_notebook_banner_thumbnail(notebook_id: int, db: Session = Depends(get_db)):
+async def get_notebook_banner_thumbnail(
+    notebook_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
     """Stream the 16:9 banner thumbnail (public)."""
+    user_id = await optional_auth(request)
+    notebook_service = NotebookService(db)
+    nb = notebook_service.get_notebook_model(notebook_id)
+    if not nb or not notebook_service.can_view_notebook(nb, user_id):
+        raise HTTPException(status_code=404, detail="Notebook not found")
     banner_service = BannerService(db)
     body, content_type = banner_service.stream_banner(notebook_id, "thumb")
     return StreamingResponse(
@@ -314,8 +336,19 @@ async def get_notebook(
     user_id = await optional_auth(request)
 
     notebook_service = NotebookService(db)
-    notebook = notebook_service.get_notebook(notebook_id)
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
+        )
+    if not notebook_service.can_view_notebook(nb_model, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
+        )
 
+    notebook = notebook_service.get_notebook(notebook_id)
     if not notebook:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -367,14 +400,18 @@ async def fork_notebook(
     """
     user_id = await require_auth(request)
 
-    # Verify original notebook exists
+    # Verify original notebook exists and is visible to forker
     notebook_service = NotebookService(db)
-    original = notebook_service.get_notebook(notebook_id)
-
-    if not original:
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notebook not found"
+            detail="Notebook not found",
+        )
+    if not notebook_service.can_view_notebook(nb_model, user_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
         )
 
     # Create fork
@@ -400,6 +437,7 @@ async def fork_notebook(
 
 @router.get("/notebooks/{notebook_id}/forks")
 async def get_notebook_forks(
+    request: Request,
     notebook_id: int,
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
@@ -415,14 +453,18 @@ async def get_notebook_forks(
 
     Returns forks ordered by created_at DESC (newest first)
     """
-    # Verify notebook exists
+    viewer_id = await optional_auth(request)
     notebook_service = NotebookService(db)
-    original = notebook_service.get_notebook(notebook_id)
-
-    if not original:
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notebook not found"
+            detail="Notebook not found",
+        )
+    if not notebook_service.can_view_notebook(nb_model, viewer_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
         )
 
     fork_service = ForkService(db, StorageService())
@@ -437,6 +479,7 @@ async def get_notebook_forks(
 
 @router.get("/notebooks/{notebook_id}/chain")
 async def get_fork_chain(
+    request: Request,
     notebook_id: int,
     db: Session = Depends(get_db)
 ):
@@ -451,14 +494,18 @@ async def get_fork_chain(
     Returns:
         List of notebooks from original to current
     """
-    # Verify notebook exists
+    viewer_id = await optional_auth(request)
     notebook_service = NotebookService(db)
-    original = notebook_service.get_notebook(notebook_id)
-
-    if not original:
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Notebook not found"
+            detail="Notebook not found",
+        )
+    if not notebook_service.can_view_notebook(nb_model, viewer_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
         )
 
     fork_service = ForkService(db, StorageService())

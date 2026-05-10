@@ -59,6 +59,7 @@ class ForkService:
             parent_id=notebook_id,  # Immediate parent
             root_id=original.root_id if original.root_id else notebook_id,  # Ultimate original
             is_archived=False,
+            group_id=None,  # Remix is not tied to parent group until user publishes to a group
             # Copy other fields
             output_s3_key=original.output_s3_key,
             output_version=original.output_version,

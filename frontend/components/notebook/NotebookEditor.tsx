@@ -26,13 +26,18 @@ const MAX_BANNER_BYTES = 10 * 1024 * 1024;
 
 interface NotebookEditorProps {
   notebookId?: number;
+  /** Pre-select this group slug in the publish dialog (e.g. from `?group=` on new notebook). */
+  defaultPublishGroupSlug?: string | null;
 }
 
 // Flat-file types accepted for local WASM execution
 const ACCEPTED_DATA_TYPES =
   '.csv,.tsv,.txt,.json,.parquet,.xlsx,.xls';
 
-export function NotebookEditor({ notebookId: propNotebookId }: NotebookEditorProps) {
+export function NotebookEditor({
+  notebookId: propNotebookId,
+  defaultPublishGroupSlug = null,
+}: NotebookEditorProps) {
   const {
     cells,
     title,
@@ -464,6 +469,7 @@ export function NotebookEditor({ notebookId: propNotebookId }: NotebookEditorPro
         open={showPublishDialog}
         onOpenChange={setShowPublishDialog}
         notebookId={effectiveNotebookId || null}
+        defaultGroupSlug={defaultPublishGroupSlug}
       />
     </>
   );

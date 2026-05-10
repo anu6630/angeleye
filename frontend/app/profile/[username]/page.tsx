@@ -26,7 +26,7 @@ export default function PublicProfilePage() {
         const profileData = await apiClient.getPublicProfile(username);
 
         setUser({
-          id: 0,
+          id: profileData.user_id,
           email: '',
           username: profileData.username,
           is_active: true,

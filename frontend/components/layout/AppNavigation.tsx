@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { BookMarked, Compass, LogIn, LogOut, PenSquare, Search, User } from 'lucide-react';
+import { BookMarked, Bookmark, Compass, LogIn, LogOut, PenSquare, Search, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
@@ -20,6 +20,8 @@ const navLinks = [
   { href: '/feed', label: 'Feed', icon: Compass },
   { href: '/search', label: 'Search', icon: Search },
   { href: '/my-notebooks', label: 'My notebooks', icon: BookMarked },
+  { href: '/saved', label: 'Saved', icon: Bookmark },
+  { href: '/groups', label: 'Groups', icon: Users },
   { href: '/notebooks/new', label: 'New', icon: PenSquare, emphasis: true as const },
 ];
 

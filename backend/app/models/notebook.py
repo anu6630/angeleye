@@ -28,6 +28,9 @@ class Notebook(Base):
     # Dataset used for last compilation (links notebook to its data source)
     dataset_id = Column(Integer, ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True)
 
+    # Group-scoped post (NULL = global feed / search); set at publish time
+    group_id = Column(Integer, ForeignKey("groups.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # View count (DISC-05: View tracking via Redis, batch synced to DB)
     # Per CONTEXT.md D-31: Stored in Redis, synced to DB every 5 minutes
     view_count = Column(Integer, nullable=True, server_default='0')
@@ -45,8 +48,10 @@ class Notebook(Base):
     user = relationship("User", back_populates="notebooks")
     cells = relationship("NotebookCell", back_populates="notebook", cascade="all, delete-orphan")
     likes = relationship("Like", back_populates="notebook", cascade="all, delete-orphan")
+    notebook_saves = relationship("NotebookSave", back_populates="notebook", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="notebook", cascade="all, delete-orphan")
     dataset = relationship("Dataset", foreign_keys=[dataset_id])
+    group = relationship("Group", back_populates="notebooks")
 
     # Self-referential relationships for fork lineage
     parent = relationship("Notebook", remote_side=[id], foreign_keys=[parent_id], backref="forks")

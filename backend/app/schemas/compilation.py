@@ -38,6 +38,10 @@ class PublishRequest(BaseModel):
     output_key: str = Field(..., description="S3 key of compiled output")
     dataset_id: Optional[int] = None  # Persist dataset association on the notebook record
     auto_invalidate: bool = True  # Invalidate cache for old version
+    group_id: Optional[int] = Field(
+        None,
+        description="If set, post only to this group (must be a member). Omit or null for global feed.",
+    )
 
 
 class PublishResponse(BaseModel):

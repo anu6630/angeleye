@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useCompilationStore } from '@/stores/compilation-store';
 import { useNotebookStore } from '@/stores/notebook-store';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient, type GroupPublic } from '@/lib/api-client';
 import {
   Send,
   Loader2,
@@ -28,9 +29,16 @@ interface PublishDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   notebookId: number | null;
+  /** When set, pre-select this group in the audience control (must be one of your memberships). */
+  defaultGroupSlug?: string | null;
 }
 
-export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogProps) {
+export function PublishDialog({
+  open,
+  onOpenChange,
+  notebookId,
+  defaultGroupSlug = null,
+}: PublishDialogProps) {
   const { toast } = useToast();
   const {
     isCompiling,
@@ -52,6 +60,9 @@ export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogP
   const [flowError, setFlowError] = useState<string | null>(null);
   /** Hide dataset picker after user starts a run; reset on error so they can retry. */
   const [flowStarted, setFlowStarted] = useState(false);
+  const [myGroups, setMyGroups] = useState<GroupPublic[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [audienceGroupId, setAudienceGroupId] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -61,6 +72,36 @@ export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogP
       setFlowStarted(false);
     }
   }, [open, loadDatasets]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setGroupsLoading(true);
+    apiClient
+      .getMyGroupsHub()
+      .then((hub) => {
+        if (cancelled) return;
+        setMyGroups(hub.groups);
+        if (defaultGroupSlug) {
+          const m = hub.groups.find((g) => g.slug === defaultGroupSlug);
+          setAudienceGroupId(m ? m.id : null);
+        } else {
+          setAudienceGroupId(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMyGroups([]);
+          setAudienceGroupId(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setGroupsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, defaultGroupSlug]);
 
   const { saveNotebook } = useNotebookStore();
   const busy = isCompiling || isPublishing;
@@ -86,11 +127,18 @@ export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogP
 
       const key = s.outputKey;
       setIsPublishing(true);
-      await publishNotebook(notebookId, key, localDataset ?? undefined);
+      await publishNotebook(
+        notebookId,
+        key,
+        localDataset ?? undefined,
+        audienceGroupId
+      );
       setPublished(true);
       toast({
         title: 'Published',
-        description: 'Your notebook is live on the feed.',
+        description: audienceGroupId
+          ? 'Your notebook was posted to the group.'
+          : 'Your notebook is live on the feed.',
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Publish failed';
@@ -117,7 +165,11 @@ export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogP
   const statusMessage = () => {
     if (!notebookId) return 'Save your notebook before publishing.';
     if (flowError) return flowError;
-    if (published) return 'Your notebook has been published to the social feed.';
+    if (published) {
+      return audienceGroupId
+        ? 'Your notebook has been published to the group.'
+        : 'Your notebook has been published to the social feed.';
+    }
     if (isPublishing) return 'Publishing to the feed…';
     if (isCompiling || compilationStatus === 'pending' || compilationStatus === 'processing') {
       return compilationStatus === 'pending'
@@ -145,7 +197,9 @@ export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogP
     return <AlertCircle className="h-5 w-5 text-muted-foreground" />;
   };
 
-  const showDatasetPicker = notebookId && !published && !flowStarted && !busy;
+  /** Keep visible even when persisted compilation state leaves `busy` true (avoids hiding audience after reload). */
+  const showAudiencePicker = Boolean(notebookId) && !published && !flowStarted;
+  const showDatasetPicker = showAudiencePicker && !busy;
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
@@ -173,6 +227,41 @@ export function PublishDialog({ open, onOpenChange, notebookId }: PublishDialogP
               <p className="text-sm text-amber-900 dark:text-amber-100">
                 Save the notebook first using the Save button in the editor.
               </p>
+            </div>
+          )}
+
+          {showAudiencePicker && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="publish-audience">
+                Audience
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Anyone: main feed and search. Group: not on the global feed; only this group&apos;s
+                timeline. Private groups also restrict who can open the notebook page.
+              </p>
+              {groupsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading your groups…
+                </div>
+              ) : (
+                <select
+                  id="publish-audience"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={audienceGroupId ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setAudienceGroupId(v === '' ? null : Number(v));
+                  }}
+                >
+                  <option value="">Anyone (feed &amp; search)</option>
+                  {myGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      Group: {g.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 

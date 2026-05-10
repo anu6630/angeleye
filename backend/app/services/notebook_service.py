@@ -4,12 +4,15 @@ from sqlalchemy import func, text
 from typing import Optional, List, Dict
 from datetime import datetime
 
+from app.models.group import Group
 from app.models.notebook import Notebook
 from app.models.notebook_cell import NotebookCell
 from app.models.user import User
 from app.models.like import Like
 from app.models.comment import Comment
-from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
+from app.models.notebook_save import NotebookSave
+from app.schemas.notebook import GroupBrief, NotebookCreate, NotebookUpdate, NotebookResponse
+from app.services.group_service import VISIBILITY_PRIVATE, GroupService
 from app.services.avatar_service import build_avatar_url
 
 logger = logging.getLogger(__name__)
@@ -20,6 +23,21 @@ class NotebookService:
 
     def __init__(self, db: Session):
         self.db = db
+
+    def can_view_notebook(self, notebook: Notebook, viewer_id: Optional[int]) -> bool:
+        """Public notebooks: anyone. Private group posts: members + author only."""
+        if notebook.user_id == viewer_id:
+            return True
+        if not notebook.group_id:
+            return True
+        g = self.db.query(Group).filter(Group.id == notebook.group_id).first()
+        if not g:
+            return True
+        if g.visibility != VISIBILITY_PRIVATE:
+            return True
+        if viewer_id is None:
+            return False
+        return GroupService(self.db).is_member(g.id, viewer_id)
 
     def create_notebook(self, user_id: int, data: NotebookCreate) -> NotebookResponse:
         """Create a new notebook with an initial empty code cell"""
@@ -54,13 +72,12 @@ class NotebookService:
         # Get response data
         return self._to_response(notebook)
 
+    def get_notebook_model(self, notebook_id: int) -> Optional[Notebook]:
+        return self.db.query(Notebook).filter(Notebook.id == notebook_id).first()
+
     def get_notebook(self, notebook_id: int) -> Optional[NotebookResponse]:
         """Get notebook by ID with cells"""
-        notebook = (
-            self.db.query(Notebook)
-            .filter(Notebook.id == notebook_id)
-            .first()
-        )
+        notebook = self.get_notebook_model(notebook_id)
 
         if not notebook:
             return None
@@ -258,6 +275,12 @@ class NotebookService:
             .scalar()
         ) or 0
 
+        save_count = (
+            self.db.query(func.count(NotebookSave.id))
+            .filter(NotebookSave.notebook_id == notebook.id)
+            .scalar()
+        ) or 0
+
         username = notebook.user.username if notebook.user else None
         avatar_url = (
             build_avatar_url(notebook.user.username, notebook.user.profile)
@@ -267,6 +290,15 @@ class NotebookService:
 
         from app.services.banner_service import build_banner_urls
         banner_url, banner_thumbnail_url = build_banner_urls(notebook)
+
+        group_brief = None
+        gid = notebook.group_id
+        if gid:
+            g = notebook.group if getattr(notebook, "group", None) else None
+            if g is None:
+                g = self.db.query(Group).filter(Group.id == gid).first()
+            if g:
+                group_brief = GroupBrief(id=g.id, slug=g.slug, name=g.name)
 
         return NotebookResponse(
             id=notebook.id,
@@ -279,10 +311,13 @@ class NotebookService:
             updated_at=notebook.updated_at,
             like_count=like_count,
             comment_count=comment_count,
+            save_count=save_count,
             username=username,
             avatar_url=avatar_url,
             banner_url=banner_url,
             banner_thumbnail_url=banner_thumbnail_url,
+            group_id=gid,
+            group=group_brief,
             cells=[{
                 'id': cell.id,
                 'cell_type': cell.cell_type,

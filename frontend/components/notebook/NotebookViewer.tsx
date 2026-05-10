@@ -14,6 +14,7 @@ import { useSocialStore } from '@/stores/social-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { savePendingAction } from '@/lib/pending-auth-action';
 import { ForkButton } from '@/components/social/ForkButton';
+import { SavePostButton } from '@/components/social/SavePostButton';
 import { FollowButton } from '@/components/social/FollowButton';
 import { ForkChain } from '@/components/social/ForkChain';
 import { EngagementMetrics } from '@/components/social/EngagementMetrics';
@@ -341,6 +342,15 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
                 Comments ({notebook.comment_count})
               </Button>
               <ForkButton notebookId={notebook.id} notebookTitle={notebook.title} />
+              <SavePostButton
+                notebookId={notebook.id}
+                saveCount={notebook.save_count}
+                showText={true}
+                showCount={true}
+                variant="outline"
+                size="sm"
+                fetchInitialSavedState={true}
+              />
               <Button variant="outline" size="sm" className="rounded-full" onClick={handleShare}>
                 Share
               </Button>

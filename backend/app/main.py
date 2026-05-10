@@ -21,6 +21,8 @@ from app.api.v1.compilation.router import router as compilation_router
 from app.api.v1.follows.router import router as follows_router
 from app.api.v1.search.router import router as search_router
 from app.api.v1.feed.router import router as feed_router
+from app.api.v1.saves.router import router as saves_router
+from app.api.v1.groups.router import router as groups_router
 from app.core.config import settings
 from app.core.cache import cache
 
@@ -36,9 +38,14 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
 # CORS middleware (PITFALL 3 - proper CORS for cookies)
+# Include 127.0.0.1 — browsers treat it as a different origin than localhost.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=[
+        settings.FRONTEND_URL,
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,  # Critical for httpOnly cookies
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,6 +65,8 @@ app.include_router(compilation_router, prefix="/api/v1")
 app.include_router(follows_router, prefix="/api/v1", tags=["follows"])
 app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
 app.include_router(feed_router, prefix="/api/v1", tags=["feed"])
+app.include_router(saves_router, prefix="/api/v1", tags=["saves"])
+app.include_router(groups_router, prefix="/api/v1", tags=["groups"])
 
 # Global exception handler for custom API errors (D-23, D-24, D-25)
 @app.exception_handler(APIError)
@@ -96,6 +105,7 @@ async def ensure_storage_buckets():
             settings.NOTEBOOKS_BUCKET,
             settings.BANNERS_BUCKET,
             settings.AVATARS_BUCKET,
+            settings.GROUP_ASSETS_BUCKET,
         ):
             try:
                 storage.ensure_bucket_exists(bucket)

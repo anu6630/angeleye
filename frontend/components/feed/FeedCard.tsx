@@ -8,13 +8,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LikeButton } from '@/components/social/LikeButton';
 import { ShareButton } from '@/components/social/ShareButton';
 import { ForkButton } from '@/components/social/ForkButton';
-import { EngagementMetrics } from '@/components/social/EngagementMetrics';
-import { Button } from '@/components/ui/button';
-import { NotebookResponse } from '@/lib/api-client';
+import { SavePostButton } from '@/components/social/SavePostButton';
+import type { NotebookCard, NotebookResponse } from '@/lib/api-client';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface FeedCardProps {
-  notebook: NotebookResponse;
+  notebook: NotebookResponse | NotebookCard;
+  /** Called after save state successfully changes (e.g. remove card from Saved list). */
+  onSavedChange?: (notebookId: number, saved: boolean) => void;
 }
 
 // CSS to hide code source in the feed preview
@@ -122,11 +123,10 @@ function NotebookPreview({ notebookId }: { notebookId: number }) {
   );
 }
 
-export function FeedCard({ notebook }: FeedCardProps) {
+export function FeedCard({ notebook, onSavedChange }: FeedCardProps) {
   const {
     id,
     title,
-    user,
     like_count,
     comment_count,
     view_count = 0,
@@ -162,24 +162,6 @@ export function FeedCard({ notebook }: FeedCardProps) {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground/60 rounded-full hover:bg-muted/50 transition-colors">
-            <span className="sr-only">More options</span>
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 15 15"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-            >
-              <path
-                d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.12132 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z"
-                fill="currentColor"
-                fillRule="evenodd"
-                clipRule="evenodd"
-              ></path>
-            </svg>
-          </Button>
         </div>
       </CardHeader>
 
@@ -219,6 +201,17 @@ export function FeedCard({ notebook }: FeedCardProps) {
               <span className="text-sm font-semibold tabular-nums">{comment_count > 0 ? comment_count : ''}</span>
             </Link>
 
+            <SavePostButton
+              notebookId={id}
+              saveCount={notebook.save_count}
+              showText={true}
+              showCount={true}
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-muted-foreground hover:text-foreground"
+              onSavedChange={onSavedChange}
+            />
+
             {view_count > 0 && (
               <div className="flex items-center gap-2 text-muted-foreground/50 ml-1 select-none">
                 <Eye className="h-4 w-4" />
@@ -227,7 +220,7 @@ export function FeedCard({ notebook }: FeedCardProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
             <ForkButton
               notebookId={id}
               notebookTitle={title}

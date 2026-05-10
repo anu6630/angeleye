@@ -25,6 +25,15 @@ class NotebookUpdate(BaseModel):
     is_published: bool = False
 
 
+class GroupBrief(BaseModel):
+    id: int
+    slug: str
+    name: str
+
+    class Config:
+        from_attributes = True
+
+
 class ForkChainResponse(BaseModel):
     """Schema for fork attribution chain display"""
     id: int
@@ -51,12 +60,15 @@ class NotebookResponse(BaseModel):
     updated_at: datetime
     like_count: int = 0
     comment_count: int = 0
+    save_count: int = 0
     username: Optional[str] = None
     avatar_url: Optional[str] = None
     banner_url: Optional[str] = None
     banner_thumbnail_url: Optional[str] = None
     cells: Optional[List[NotebookCell]] = None
     fork_chain: Optional[List[ForkChainResponse]] = None
+    group_id: Optional[int] = None
+    group: Optional[GroupBrief] = None
 
     class Config:
         from_attributes = True

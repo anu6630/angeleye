@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Set
 from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,7 @@ from app.models.feed_event import FeedEvent
 from app.core.redis_client import get_redis_client
 from app.services.trending_service import TrendingService
 from app.services.follow_service import FollowService
+from app.services.save_service import SaveService
 
 
 class FeedService:
@@ -82,8 +83,11 @@ class FeedService:
                     # Cache hit - fetch notebooks and return
                     notebook_ids = [int(nid) for nid in cached_ids]
                     notebooks = self._get_notebooks_by_ids(notebook_ids)
+                    save_service = SaveService(self.db)
+                    saved_ids = save_service.get_saved_notebook_ids(user_id, [nb.id for nb in notebooks])
+                    save_counts = save_service.get_save_counts([nb.id for nb in notebooks])
                     return {
-                        "items": [self._notebook_to_dict(nb, user_id) for nb in notebooks],
+                        "items": [self._notebook_to_dict(nb, user_id, saved_ids, save_counts) for nb in notebooks],
                         "next_cursor": None,
                         "has_more": False
                     }
@@ -155,8 +159,11 @@ class FeedService:
                 pass  # Event logging failure shouldn't break the feed
 
         # Build response
+        save_service = SaveService(self.db)
+        saved_ids = save_service.get_saved_notebook_ids(user_id, [nb.id for nb in feed_notebooks])
+        save_counts = save_service.get_save_counts([nb.id for nb in feed_notebooks])
         return {
-            "items": [self._notebook_to_dict(nb, user_id) for nb in feed_notebooks],
+            "items": [self._notebook_to_dict(nb, user_id, saved_ids, save_counts) for nb in feed_notebooks],
             "next_cursor": feed_notebooks[-1].created_at.isoformat() if feed_notebooks and has_more else None,
             "has_more": has_more
         }
@@ -193,7 +200,11 @@ class FeedService:
             recent_notebooks = (
                 self.db.query(Notebook)
                 .options(joinedload(Notebook.user))
-                .filter(Notebook.is_published == True, Notebook.is_archived == False)
+                .filter(
+                    Notebook.is_published == True,
+                    Notebook.is_archived == False,
+                    Notebook.group_id.is_(None),
+                )
                 .order_by(Notebook.created_at.desc())
                 .limit(10) # Increased limit to ensure discovery even with many rapid posts
                 .all()
@@ -227,8 +238,14 @@ class FeedService:
         has_more = len(notebooks) > limit
         notebooks = notebooks[:limit]
 
+        save_service = SaveService(self.db)
+        save_counts = save_service.get_save_counts([nb.id for nb in notebooks])
+        saved_ids: Set[int] = set()
+        if viewer_id is not None:
+            saved_ids = save_service.get_saved_notebook_ids(viewer_id, [nb.id for nb in notebooks])
+
         return {
-            "items": [self._notebook_to_dict(nb) for nb in notebooks],
+            "items": [self._notebook_to_dict(nb, viewer_id, saved_ids, save_counts) for nb in notebooks],
             "next_cursor": notebooks[-1].created_at.isoformat() if notebooks and has_more else None,
             "has_more": has_more
         }
@@ -421,7 +438,8 @@ class FeedService:
             .filter(
                 Notebook.user_id.in_(followed_ids),
                 Notebook.is_published == True,
-                Notebook.is_archived == False
+                Notebook.is_archived == False,
+                Notebook.group_id.is_(None),
             )
             .order_by(Notebook.created_at.desc())
             .limit(limit)
@@ -447,7 +465,8 @@ class FeedService:
             .filter(
                 Notebook.id.in_(notebook_ids),
                 Notebook.is_published == True,
-                Notebook.is_archived == False
+                Notebook.is_archived == False,
+                Notebook.group_id.is_(None),
             )
             .all()
         )
@@ -465,13 +484,17 @@ class FeedService:
     def _notebook_to_dict(
         self,
         notebook: Notebook,
-        viewer_id: Optional[int] = None
+        viewer_id: Optional[int] = None,
+        saved_ids: Optional[Set[int]] = None,
+        save_counts: Optional[Dict[int, int]] = None,
     ) -> Dict[str, Any]:
         """Convert notebook to dict for API response
 
         Args:
             notebook: Notebook object
             viewer_id: Optional user ID viewing the notebook
+            saved_ids: Notebook IDs the viewer has saved (batch); used when viewer_id is set
+            save_counts: notebook_id -> number of users who saved (batch)
 
         Returns:
             Dict representation of notebook
@@ -509,6 +532,11 @@ class FeedService:
             result["comment_count"] = metrics[notebook.id]["comments"]
             result["view_count"] = metrics[notebook.id]["views"]
 
+        if viewer_id is not None:
+            result["is_saved"] = notebook.id in (saved_ids or set())
+
+        result["save_count"] = save_counts.get(notebook.id, 0) if save_counts else 0
+
         return result
 
     def _record_feed_event(
@@ -540,3 +568,51 @@ class FeedService:
             self.db.commit()
         except Exception:
             pass  # Event logging failure shouldn't break operations
+
+    def get_feed(self, cursor: Optional[str] = None, limit: int = 20) -> dict:
+        """Legacy simple feed: same as trending mix (global posts only)."""
+        return self.get_trending_feed(limit=min(limit, 50), cursor=cursor, viewer_id=None)
+
+    def list_group_feed(
+        self,
+        group_id: int,
+        viewer_id: Optional[int],
+        limit: int = 50,
+        cursor: Optional[str] = None,
+    ) -> dict:
+        """Published notebooks posted to a specific group (not global feed)."""
+        from sqlalchemy.orm import joinedload
+
+        limit = min(limit, 100)
+        q = (
+            self.db.query(Notebook)
+            .options(joinedload(Notebook.user))
+            .filter(
+                Notebook.group_id == group_id,
+                Notebook.is_published == True,
+                Notebook.is_archived == False,
+            )
+            .order_by(Notebook.created_at.desc())
+        )
+        if cursor:
+            try:
+                cursor_time = datetime.fromisoformat(cursor.replace("Z", "+00:00"))
+                q = q.filter(Notebook.created_at < cursor_time)
+            except ValueError:
+                pass
+        rows = q.limit(limit + 1).all()
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+        save_service = SaveService(self.db)
+        ids = [nb.id for nb in rows]
+        save_counts = save_service.get_save_counts(ids)
+        saved_ids = (
+            save_service.get_saved_notebook_ids(viewer_id, ids) if viewer_id else set()
+        )
+        return {
+            "items": [
+                self._notebook_to_dict(nb, viewer_id, saved_ids, save_counts) for nb in rows
+            ],
+            "next_cursor": rows[-1].created_at.isoformat() if rows and has_more else None,
+            "has_more": has_more,
+        }
