@@ -80,7 +80,7 @@ export function FeedList() {
       <header className="mb-10 space-y-2 text-center">
         <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">Feed</h1>
         <p className="text-muted-foreground leading-relaxed">
-          Published notebooks from people you follow and what&apos;s trending. Open a card to read the
+          Published insights from people you follow and what&apos;s trending. Open a card to read the
           full render, fork, or join the thread.
         </p>
       </header>
@@ -88,9 +88,9 @@ export function FeedList() {
       {/* Empty state */}
       {notebooks.length === 0 && !isLoading && (
         <div className="text-center py-12">
-          <h2 className="text-xl font-semibold mb-2">No notebooks yet</h2>
+          <h2 className="text-xl font-semibold mb-2">No insights yet</h2>
           <p className="text-muted-foreground">
-            Be the first to publish a notebook!
+            Be the first to publish a data insight!
           </p>
         </div>
       )}
@@ -98,7 +98,7 @@ export function FeedList() {
       {/* Feed grid - Instagram style (3 columns on lg, 2 on md, 1 on sm) */}
       <div
         role="feed"
-        aria-label="Notebook feed"
+        aria-label="Insight feed"
         className="flex flex-col gap-8"
       >
         {notebooks.map((notebook: any) => (
@@ -122,7 +122,7 @@ export function FeedList() {
       {/* End of feed indicator */}
       {!hasMore && notebooks.length > 0 && !isLoading && (
         <div className="text-center py-8 text-muted-foreground">
-          <p>You've seen all notebooks</p>
+          <p>You've seen all insights</p>
         </div>
       )}
     </div>

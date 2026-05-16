@@ -48,13 +48,13 @@ export default function Home() {
 
             <div className="space-y-4">
               <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground md:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
-                Notebooks as social posts.
-                <span className="block text-muted-foreground">Edit fast with WASM. Ship with Docker.</span>
+                Evidence-based conversations.
+                <span className="block text-muted-foreground">Share insights, not rumors. Verified by data.</span>
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground leading-relaxed">
-                IdeaLit is a feed for computational work: write Python notebooks in the editor,
-                run cells locally for speed, then compile in an isolated container when you are ready
-                to publish for everyone.
+                Pulze is a social network for evidence-based discussion. 
+                Create interactive posts backed by real data, 
+                ensuring every insight is transparent and reproducible.
               </p>
             </div>
 
@@ -62,18 +62,18 @@ export default function Home() {
               {[
                 {
                   icon: Code2,
-                  title: 'WASM editing',
-                  body: 'Try ideas in the browser without waiting on the server.',
+                  title: 'Live Data',
+                  body: 'Explore and interact with live charts directly in your feed.',
                 },
                 {
                   icon: Layers,
-                  title: 'Container compile',
-                  body: 'One click sends your notebook to a reproducible build.',
+                  title: 'Verified Evidence',
+                  body: 'Every post is backed by reproducible datasets and code.',
                 },
                 {
                   icon: GitFork,
-                  title: 'Fork & remix',
-                  body: 'Every fork is a first-class post in the feed.',
+                  title: 'Remix Insights',
+                  body: 'Fork any post to add your own analysis and perspective.',
                 },
               ].map(({ icon: Icon, title, body }) => (
                 <div

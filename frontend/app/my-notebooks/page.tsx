@@ -86,13 +86,13 @@ export default function MyNotebooksPage() {
       <div className="container mx-auto max-w-4xl px-4 py-8 md:py-10">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-semibold tracking-tight">My notebooks</h1>
+            <h1 className="font-display text-3xl font-semibold tracking-tight">My insights</h1>
             <p className="mt-1 text-muted-foreground">Drafts and published work in one place.</p>
           </div>
           <Link href="/notebooks/new">
             <Button size="sm" className="rounded-full">
               <Plus className="mr-2 h-4 w-4" />
-              New notebook
+              New insight
             </Button>
           </Link>
         </div>
@@ -116,14 +116,14 @@ export default function MyNotebooksPage() {
           <Card>
             <CardContent className="pt-6 text-center py-12">
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-xl font-semibold mb-2">No notebooks yet</h2>
+              <h2 className="text-xl font-semibold mb-2">No insights yet</h2>
               <p className="text-muted-foreground mb-4">
-                Create your first notebook to get started!
+                Create your first data insight to get started!
               </p>
               <Link href="/notebooks/new">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Notebook
+                  Create Insight
                 </Button>
               </Link>
             </CardContent>

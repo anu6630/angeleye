@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { BookMarked, Bookmark, Compass, LogIn, LogOut, PenSquare, Search, User, Users } from 'lucide-react';
+import { Bookmark, Compass, LogIn, LogOut, MessageCircle, PenSquare, Search, User, UserPlus, Users } from 'lucide-react';
+import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
@@ -19,10 +20,8 @@ import {
 const navLinks = [
   { href: '/feed', label: 'Feed', icon: Compass },
   { href: '/search', label: 'Search', icon: Search },
-  { href: '/my-notebooks', label: 'My notebooks', icon: BookMarked },
-  { href: '/saved', label: 'Saved', icon: Bookmark },
-  { href: '/groups', label: 'Groups', icon: Users },
-  { href: '/notebooks/new', label: 'New', icon: PenSquare, emphasis: true as const },
+  { href: '/messages', label: 'Messages', icon: MessageCircle },
+  { href: '/notebooks/new', label: 'Publish', icon: PenSquare, emphasis: true as const },
 ];
 
 export function AppNavigation() {
@@ -35,15 +34,15 @@ export function AppNavigation() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-      <div className="container mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+      <div className="container mx-auto flex h-14 max-w-[1800px] items-center justify-between gap-4 px-6 md:px-8">
         <Link
           href={isAuthenticated ? '/feed' : '/'}
-          className="group flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-foreground"
+          className="flex items-center gap-2.5 font-display text-xl font-bold tracking-tighter text-foreground hover:opacity-80 transition-opacity"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm transition group-hover:opacity-90">
-            <BookMarked className="h-4 w-4" aria-hidden />
+          <Logo className="h-7 w-7 text-primary" />
+          <span className="hidden sm:inline">
+            Pulze<span className="text-primary">.</span>
           </span>
-          <span className="hidden sm:inline">IdeaLit</span>
         </Link>
 
         <nav className="hidden items-center gap-0.5 md:flex" aria-label="Main">
