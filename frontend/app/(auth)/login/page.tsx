@@ -5,7 +5,7 @@ import EmailPasswordForm from '@/components/auth/EmailPasswordForm';
 import { useAuthStore } from '@/stores/auth-store';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BookMarked } from 'lucide-react';
+import { Logo } from '@/components/layout/Logo';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,8 +32,8 @@ export default function LoginPage() {
     <div className="min-h-[calc(100vh-3.5rem)] bg-muted/30">
       <div className="container mx-auto flex max-w-lg flex-col gap-8 px-4 py-12">
         <div className="text-center space-y-3">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <BookMarked className="h-6 w-6" aria-hidden />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center">
+            <Logo className="h-12 w-12 text-primary" />
           </div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Welcome back</h1>
           <p className="text-muted-foreground">

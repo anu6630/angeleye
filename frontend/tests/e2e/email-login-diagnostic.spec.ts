@@ -12,7 +12,7 @@ test('Diagnostic: Check login flow step by step', async ({ page }) => {
   console.log('Step 1: Navigate to home page');
   await page.goto('http://localhost:3000');
   console.log('Current URL:', page.url());
-  await expect(page).toHaveTitle(/NotebookSocial/);
+  await expect(page).toHaveTitle(/Pulze/);
   console.log('✓ Home page loaded');
 
   console.log('\nStep 2: Click "Continue with Email" button');

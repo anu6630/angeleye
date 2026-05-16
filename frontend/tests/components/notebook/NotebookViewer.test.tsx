@@ -12,6 +12,7 @@ vi.mock('@/stores/social-store');
 vi.mock('@/lib/api-client', () => ({
   apiClient: {
     getNotebook: vi.fn(),
+    checkNotebookSaved: vi.fn().mockResolvedValue({ is_saved: false }),
   },
 }));
 
@@ -52,6 +53,10 @@ vi.mock('@/components/social/EngagementMetrics', () => ({
       {likes} likes, {comments} comments, {views} views
     </div>
   ),
+}));
+
+vi.mock('@/hooks/useNotebookPresence', () => ({
+  useNotebookPresence: () => ({ onlineViewerCount: null }),
 }));
 
 const mockNotebook = {

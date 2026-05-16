@@ -34,7 +34,12 @@ interface CompilationState {
   setSelectedDataset: (datasetId: number | null) => void;
   deleteDataset: (id: number) => Promise<void>;
   uploadDataset: (file: File) => Promise<Dataset>;
-  publishNotebook: (notebookId: number, outputKey: string, datasetId?: number) => Promise<PublishResponse>;
+  publishNotebook: (
+    notebookId: number,
+    outputKey: string,
+    datasetId?: number,
+    groupId?: number | null
+  ) => Promise<PublishResponse>;
   setOutputPreview: (url: string, key: string) => void;
 }
 
@@ -221,14 +226,19 @@ export const useCompilationStore = create<CompilationState>()(
         }
       },
 
-      publishNotebook: async (notebookId, outputKey, datasetId) => {
+      publishNotebook: async (notebookId, outputKey, datasetId, groupId) => {
         try {
           const request: PublishRequest = {
             notebook_id: notebookId,
             output_key: outputKey,
-            dataset_id: datasetId,
             auto_invalidate: true,
           };
+          if (datasetId !== undefined) {
+            request.dataset_id = datasetId;
+          }
+          if (groupId !== undefined && groupId !== null) {
+            request.group_id = groupId;
+          }
 
           const response = await apiClient.publishNotebook(request);
 

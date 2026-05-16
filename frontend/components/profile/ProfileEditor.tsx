@@ -6,12 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, User, FileText, Edit2, X } from 'lucide-react';
+import { Loader2, User, FileText, X, Info } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AvatarUploader } from './AvatarUploader';
-import { AvatarCropData } from '@/lib/api-client';
+import { ProfileMediaEditor } from './ProfileMediaEditor';
 
 const profileUpdateSchema = z.object({
   username: z
@@ -28,21 +27,21 @@ type ProfileUpdateData = z.infer<typeof profileUpdateSchema>;
 interface ProfileEditorProps {
   currentUsername: string;
   currentAvatarUrl?: string | null;
+  currentBannerUrl?: string | null;
   currentBio?: string | null;
   onUpdate: (data: ProfileUpdateData) => Promise<void>;
-  onUploadAvatar: (payload: { file: File; cropData: AvatarCropData }) => Promise<void>;
-  onDeleteAvatar: () => Promise<void>;
   onCancel: () => void;
+  onRefresh: () => void;
 }
 
 export function ProfileEditor({
   currentUsername,
   currentAvatarUrl,
+  currentBannerUrl,
   currentBio,
   onUpdate,
-  onUploadAvatar,
-  onDeleteAvatar,
-  onCancel
+  onCancel,
+  onRefresh
 }: ProfileEditorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,113 +74,89 @@ export function ProfileEditor({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Edit2 className="w-5 h-5" />
-          Edit Profile
-        </CardTitle>
-        <CardDescription>
-          Update your profile information
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Username */}
-          <div className="space-y-2">
-            <Label htmlFor="username" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Username
-            </Label>
-            <Input
-              id="username"
-              defaultValue={currentUsername}
-              {...register('username')}
-              disabled={isLoading}
-            />
-            {errors.username && (
-              <p className="text-sm text-destructive">{errors.username.message}</p>
-            )}
-          </div>
+    <div className="space-y-6">
+      {/* Media Editor (Banner & Avatar) */}
+      <ProfileMediaEditor 
+        username={currentUsername}
+        initialAvatar={currentAvatarUrl}
+        initialBanner={currentBannerUrl}
+        onUpdate={onRefresh}
+      />
 
-          {/* Avatar */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              Profile photo
-            </Label>
-            <AvatarUploader
-              username={currentUsername}
-              avatarUrl={currentAvatarUrl}
-              disabled={isLoading}
-              uploading={isLoading}
-              onUpload={async ({ file, crop }) => {
-                const cropData: AvatarCropData = {
-                  crop_x: Math.round(crop.x),
-                  crop_y: Math.round(crop.y),
-                  crop_size: Math.round(Math.min(crop.width, crop.height)),
-                };
-                setIsLoading(true);
-                try {
-                  await onUploadAvatar({ file, cropData });
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              onRemove={async () => {
-                setIsLoading(true);
-                try {
-                  await onDeleteAvatar();
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-            />
-          </div>
-
-          {/* Bio */}
-          <div className="space-y-2">
-            <Label htmlFor="bio" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Bio
-            </Label>
-            <Textarea
-              id="bio"
-              defaultValue={currentBio || ''}
-              {...register('bio')}
-              disabled={isLoading}
-              placeholder="Tell us about yourself..."
-              rows={4}
-              maxLength={500}
-            />
-            {errors.bio && (
-              <p className="text-sm text-destructive">{errors.bio.message}</p>
-            )}
-          </div>
-
-          {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="w-5 h-5 text-primary" />
+            Basic Information
+          </CardTitle>
+          <CardDescription>
+            Update your public profile details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Username */}
+            <div className="space-y-2">
+              <Label htmlFor="username" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Username
+              </Label>
+              <Input
+                id="username"
+                className="bg-background/50 border-border/50"
+                defaultValue={currentUsername}
+                {...register('username')}
+                disabled={isLoading}
+              />
+              {errors.username && (
+                <p className="text-sm text-destructive">{errors.username.message}</p>
               )}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            </div>
+
+            {/* Bio */}
+            <div className="space-y-2">
+              <Label htmlFor="bio" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Bio
+              </Label>
+              <Textarea
+                id="bio"
+                className="bg-background/50 border-border/50 min-h-[120px]"
+                defaultValue={currentBio || ''}
+                {...register('bio')}
+                disabled={isLoading}
+                placeholder="Tell us about yourself..."
+                maxLength={500}
+              />
+              {errors.bio && (
+                <p className="text-sm text-destructive">{errors.bio.message}</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" disabled={isLoading} className="flex-1">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Profile'
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -3,8 +3,23 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PublishDialog } from '@/components/notebook/PublishDialog';
 import { useCompilationStore } from '@/stores/compilation-store';
+import { useNotebookStore } from '@/stores/notebook-store';
+import { apiClient } from '@/lib/api-client';
 
 vi.mock('@/stores/compilation-store');
+vi.mock('@/stores/notebook-store', () => ({
+  useNotebookStore: vi.fn(),
+}));
+vi.mock('@/lib/api-client', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/lib/api-client')>();
+  return {
+    ...mod,
+    apiClient: {
+      ...mod.apiClient,
+      getMyGroupsHub: vi.fn(),
+    },
+  };
+});
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
@@ -20,6 +35,14 @@ describe('PublishDialog', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useNotebookStore).mockReturnValue({
+      saveNotebook: vi.fn().mockResolvedValue(undefined),
+    } as any);
+    vi.mocked(apiClient.getMyGroupsHub).mockResolvedValue({
+      groups: [],
+      pending_invites: [],
+      pending_admin_promotions: [],
+    });
     getStateSnapshot = {
       compilationStatus: 'idle',
       outputKey: null,
@@ -63,7 +86,49 @@ describe('PublishDialog', () => {
 
     await waitFor(() => {
       expect(mockCompile).toHaveBeenCalledWith(123, undefined);
-      expect(mockPublish).toHaveBeenCalledWith(123, 'output-key');
+      expect(mockPublish).toHaveBeenCalledWith(123, 'output-key', undefined, null);
+    });
+  });
+
+  it('shows audience selector and passes group_id to publish when a group is selected', async () => {
+    const user = userEvent.setup();
+    vi.mocked(apiClient.getMyGroupsHub).mockResolvedValue({
+      groups: [
+        {
+          id: 7,
+          name: 'Chem',
+          slug: 'chem',
+          member_count: 2,
+          visibility: 'public',
+          join_policy: 'open',
+          is_member: true,
+          is_admin: false,
+          can_join: false,
+        },
+      ],
+      pending_invites: [],
+      pending_admin_promotions: [],
+    });
+    mockCompile.mockImplementation(async () => {
+      getStateSnapshot = {
+        compilationStatus: 'success',
+        outputKey: 'output-key',
+        compilationResult: null,
+      };
+    });
+    mockPublish.mockResolvedValue(undefined);
+
+    render(<PublishDialog open={true} onOpenChange={vi.fn()} notebookId={123} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/audience/i)).toBeInTheDocument();
+    });
+    await user.selectOptions(screen.getByLabelText(/audience/i), '7');
+
+    await user.click(screen.getByRole('button', { name: /^publish$/i }));
+
+    await waitFor(() => {
+      expect(mockPublish).toHaveBeenCalledWith(123, 'output-key', undefined, 7);
     });
   });
 

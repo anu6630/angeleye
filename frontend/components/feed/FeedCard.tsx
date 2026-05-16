@@ -9,8 +9,10 @@ import { LikeButton } from '@/components/social/LikeButton';
 import { ShareButton } from '@/components/social/ShareButton';
 import { ForkButton } from '@/components/social/ForkButton';
 import { SavePostButton } from '@/components/social/SavePostButton';
+import { PostReportMenu } from '@/components/social/PostReportMenu';
 import type { NotebookCard, NotebookResponse } from '@/lib/api-client';
 import { formatRelativeTime } from '@/lib/utils';
+import { useNotebookPresence } from '@/hooks/useNotebookPresence';
 
 interface FeedCardProps {
   notebook: NotebookResponse | NotebookCard;
@@ -138,14 +140,42 @@ export function FeedCard({ notebook, onSavedChange }: FeedCardProps) {
   const avatar_url = (notebook.user?.avatar_url || notebook.avatar_url);
   const bannerThumb = notebook.banner_thumbnail_url;
 
+  const [presenceHoverActive, setPresenceHoverActive] = useState(false);
+  const presenceDebounceRef = useRef<number | null>(null);
+
+  const onPointerEnterCard = () => {
+    if (presenceDebounceRef.current != null) window.clearTimeout(presenceDebounceRef.current);
+    presenceDebounceRef.current = window.setTimeout(() => setPresenceHoverActive(true), 280);
+  };
+
+  const onPointerLeaveCard = () => {
+    if (presenceDebounceRef.current != null) {
+      window.clearTimeout(presenceDebounceRef.current);
+      presenceDebounceRef.current = null;
+    }
+    setPresenceHoverActive(false);
+  };
+
+  const { onlineViewerCount } = useNotebookPresence(id, {
+    enabled: presenceHoverActive,
+  });
+
+  const showViewsFooter =
+    view_count > 0 ||
+    (presenceHoverActive && onlineViewerCount != null && onlineViewerCount > 0);
+
   return (
-    <Card className="group relative overflow-hidden border-border/60 bg-card/40 backdrop-blur-md shadow-lg transition-all duration-500 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5">
+    <Card
+      className="group relative overflow-hidden border-border/60 bg-card/40 backdrop-blur-md shadow-lg transition-all duration-500 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5"
+      onPointerEnter={onPointerEnterCard}
+      onPointerLeave={onPointerLeaveCard}
+    >
       {/* Premium top accent gradient */}
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/80 via-secondary/80 to-primary/80 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       
       <CardHeader className="pb-3 pt-5 px-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
             <Avatar className="h-10 w-10 ring-2 ring-background shadow-sm">
               {avatar_url ? (
                 <AvatarImage src={avatar_url} alt={username} />
@@ -162,6 +192,7 @@ export function FeedCard({ notebook, onSavedChange }: FeedCardProps) {
               </p>
             </div>
           </div>
+          <PostReportMenu postId={id} />
         </div>
       </CardHeader>
 
@@ -212,10 +243,21 @@ export function FeedCard({ notebook, onSavedChange }: FeedCardProps) {
               onSavedChange={onSavedChange}
             />
 
-            {view_count > 0 && (
-              <div className="flex items-center gap-2 text-muted-foreground/50 ml-1 select-none">
-                <Eye className="h-4 w-4" />
-                <span className="text-[11px] font-bold tracking-wider tabular-nums uppercase">{view_count}</span>
+            {showViewsFooter && (
+              <div className="flex items-center gap-1.5 text-muted-foreground/50 ml-1 select-none min-w-0">
+                <Eye className="h-4 w-4 shrink-0" />
+                {view_count > 0 && (
+                  <span className="text-[11px] font-bold tracking-wider tabular-nums uppercase">
+                    {view_count}
+                  </span>
+                )}
+                {presenceHoverActive &&
+                  onlineViewerCount != null &&
+                  onlineViewerCount > 0 && (
+                    <span className="text-[10px] font-semibold tabular-nums text-emerald-600/90 dark:text-emerald-400/90 truncate">
+                      · {onlineViewerCount} now
+                    </span>
+                  )}
               </div>
             )}
           </div>

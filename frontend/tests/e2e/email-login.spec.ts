@@ -11,7 +11,7 @@ test.describe('Email/Password Authentication Flow', () => {
 
   test('Login with email and password from home', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle(/NotebookSocial/)
+    await expect(page).toHaveTitle(/Pulze/)
 
     await loginViaHomeEmailForm(page)
 

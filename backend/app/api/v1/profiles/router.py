@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.services.avatar_service import AvatarService, build_avatar_url
+from app.services.banner_service import BannerService, build_banner_url
 from app.services.profile_service import ProfileService
 from app.api.v1.dependencies import rate_limit_authorization
 from app.api.v1.dependencies import require_auth
@@ -23,6 +24,7 @@ router = APIRouter()
 def _profile_response_from_user(user: User):
     profile = user.profile
     avatar_url = build_avatar_url(user.username, profile) if profile else None
+    banner_url = build_banner_url(user.username, profile) if profile else None
     return ProfileResponse(
         id=profile.id if profile else 0,
         user_id=user.id,
@@ -30,6 +32,7 @@ def _profile_response_from_user(user: User):
         email=user.email,
         bio=profile.bio if profile else None,
         avatar_url=avatar_url,
+        banner_url=banner_url,
         created_at=profile.created_at if profile else user.created_at,
         updated_at=profile.updated_at if profile else user.updated_at,
     )
@@ -56,7 +59,7 @@ async def update_my_profile(
     request: Request,
     profile_data: ProfileUpdateRequest,
     db: Session = Depends(get_db)
-):  # Rate limiting temporarily disabled for debugging
+):
     """Update current user's profile (PROF-05, D-07, D-08)"""
     # Get authenticated user (AUTH-05: authentication required for editing)
     user_id = await require_auth(request)
@@ -102,12 +105,12 @@ async def get_my_notebooks(
     # Calculate offset
     skip = (page - 1) * per_page
 
-    # Get notebooks (returns empty list in Phase 1, implemented in Phase 2)
+    # Get notebooks
     notebooks = profile_service.list_user_notebooks(user_id, skip, per_page)
 
     return UserNotebooksResponse(
         notebooks=notebooks,
-        total=len(notebooks),  # Will be actual count in Phase 2
+        total=len(notebooks),
         page=page,
         per_page=per_page
     )
@@ -118,7 +121,6 @@ async def get_public_profile(
     db: Session = Depends(get_db)
 ):
     """Get public profile by username (AUTH-04, AUTH-05: passive viewing works without auth)"""
-    # This endpoint is public - no authentication required (AUTH-04, AUTH-05)
     profile_service = ProfileService(db)
     user = profile_service.get_user_by_username(username)
 
@@ -129,11 +131,15 @@ async def get_public_profile(
     stats = profile_service.get_profile_stats(user.id)
 
     return PublicProfileResponse(
+        user_id=user.id,
         username=user.username,
         avatar_url=build_avatar_url(user.username, profile) if profile else None,
+        banner_url=build_banner_url(user.username, profile) if profile else None,
         bio=profile.bio if profile else None,
         published_notebook_count=stats['published_notebook_count'],
         likes_received_count=stats['likes_received_count'],
+        saved_notebook_count=stats['saved_notebook_count'],
+        group_count=stats['group_count'],
         created_at=user.created_at
     )
 
@@ -169,6 +175,39 @@ async def delete_my_avatar(
     avatar_service.delete_avatar(user_id)
 
 
+@router.post('/me/banner', dependencies=[Depends(rate_limit_authorization())])
+async def upload_my_banner(
+    request: Request,
+    file: UploadFile = File(...),
+    crop_x: Optional[int] = None,
+    crop_y: Optional[int] = None,
+    crop_width: Optional[int] = None,
+    crop_height: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    user_id = await require_auth(request)
+    banner_service = BannerService(db)
+    banner_url = banner_service.upload_profile_banner(
+        user_id=user_id,
+        file=file,
+        crop_x=crop_x,
+        crop_y=crop_y,
+        crop_width=crop_width,
+        crop_height=crop_height,
+    )
+    return {"banner_url": banner_url}
+
+
+@router.delete('/me/banner', status_code=204, dependencies=[Depends(rate_limit_authorization())])
+async def delete_my_banner(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user_id = await require_auth(request)
+    banner_service = BannerService(db)
+    banner_service.delete_profile_banner(user_id)
+
+
 @router.get('/{username}/avatar')
 async def get_user_avatar(
     username: str,
@@ -177,4 +216,15 @@ async def get_user_avatar(
 ):
     avatar_service = AvatarService(db)
     body, content_type = avatar_service.stream_avatar(username, thumbnail=thumb)
+    return StreamingResponse(body, media_type=content_type)
+
+
+@router.get('/{username}/banner')
+async def get_user_banner(
+    username: str,
+    thumb: bool = False,
+    db: Session = Depends(get_db),
+):
+    banner_service = BannerService(db)
+    body, content_type = banner_service.stream_banner(username, thumbnail=thumb)
     return StreamingResponse(body, media_type=content_type)

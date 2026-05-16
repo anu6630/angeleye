@@ -31,6 +31,8 @@ export default function GroupDetailPage() {
   const [postsFeed, setPostsFeed] = useState<FeedResponse | null>(null);
   const [postsLoading, setPostsLoading] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  /** Presence GET: loading / success / first-fetch failed (errors were fully silent before). */
+  const [presenceUi, setPresenceUi] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle');
 
   const load = useCallback(async () => {
     if (!slug) {
@@ -87,13 +89,17 @@ export default function GroupDetailPage() {
     const pollMs = 12_000;
     const heartbeatMs = 25_000;
 
+    setPresenceUi('loading');
+    setOnlineCount(null);
+
     const refreshCount = async () => {
       // Poll even when the tab is hidden so counts stay accurate and automated tests (headless) still work.
       try {
         const p = await apiClient.getGroupPresence(liveSlug);
         setOnlineCount(p.online_user_count);
+        setPresenceUi('ready');
       } catch {
-        // ignore (e.g. network)
+        setPresenceUi((prev) => (prev === 'ready' ? 'ready' : 'failed'));
       }
     };
 
@@ -214,7 +220,21 @@ export default function GroupDetailPage() {
                 {group.member_count} members · {group.visibility} ·{' '}
                 {group.join_policy === 'open' ? 'Open join' : 'Invite only'}
               </p>
-              {onlineCount !== null && (
+              {presenceUi === 'loading' && (
+                <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                  Checking who&apos;s online…
+                </p>
+              )}
+              {presenceUi === 'failed' && (
+                <p className="mt-2 max-w-md text-xs text-muted-foreground leading-relaxed">
+                  Live browsing count couldn&apos;t be loaded. If you&apos;re on Docker, rebuild the{' '}
+                  <code className="rounded bg-muted px-1 py-0.5 text-[0.7rem]">backend</code> image so
+                  it includes <code className="rounded bg-muted px-1 py-0.5 text-[0.7rem]">/groups/…/presence</code>
+                  , and ensure Redis is up. Then hard-refresh this page.
+                </p>
+              )}
+              {presenceUi === 'ready' && onlineCount !== null && (
                 <div
                   data-testid="group-online-count"
                   aria-live="polite"

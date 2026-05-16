@@ -131,6 +131,23 @@ class StorageService:
             logger.error(f"Failed to generate presigned URL: {e}")
             raise Exception(f"Failed to generate presigned URL: {e}")
 
+    def generate_presigned_put_url(
+        self,
+        bucket: str,
+        key: str,
+        content_type: str,
+        expiration: int = 300,
+    ) -> str:
+        try:
+            return self.s3_client.generate_presigned_url(
+                "put_object",
+                Params={"Bucket": bucket, "Key": key, "ContentType": content_type},
+                ExpiresIn=expiration,
+            )
+        except ClientError as e:
+            logger.error(f"Failed to generate presigned PUT URL: {e}")
+            raise Exception(f"Failed to generate presigned PUT URL: {e}")
+
     def generate_presigned_post(
         self,
         bucket: str,

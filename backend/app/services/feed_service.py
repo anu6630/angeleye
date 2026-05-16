@@ -616,3 +616,50 @@ class FeedService:
             "next_cursor": rows[-1].created_at.isoformat() if rows and has_more else None,
             "has_more": has_more,
         }
+    def list_user_public_notebooks(
+        self,
+        target_user_id: int,
+        viewer_id: Optional[int] = None,
+        limit: int = 20,
+        cursor: Optional[str] = None,
+    ) -> dict:
+        """Get public, non-group notebooks for a specific user."""
+        from sqlalchemy.orm import joinedload
+
+        limit = min(limit, 100)
+        q = (
+            self.db.query(Notebook)
+            .options(joinedload(Notebook.user))
+            .filter(
+                Notebook.user_id == target_user_id,
+                Notebook.is_published == True,
+                Notebook.is_archived == False,
+                Notebook.group_id.is_(None),
+            )
+            .order_by(Notebook.created_at.desc())
+        )
+        if cursor:
+            try:
+                cursor_time = datetime.fromisoformat(cursor.replace("Z", "+00:00"))
+                q = q.filter(Notebook.created_at < cursor_time)
+            except ValueError:
+                pass
+        
+        rows = q.limit(limit + 1).all()
+        has_more = len(rows) > limit
+        rows = rows[:limit]
+        
+        save_service = SaveService(self.db)
+        ids = [nb.id for nb in rows]
+        save_counts = save_service.get_save_counts(ids)
+        saved_ids = (
+            save_service.get_saved_notebook_ids(viewer_id, ids) if viewer_id else set()
+        )
+        
+        return {
+            "items": [
+                self._notebook_to_dict(nb, viewer_id, saved_ids, save_counts) for nb in rows
+            ],
+            "next_cursor": rows[-1].created_at.isoformat() if rows and has_more else None,
+            "has_more": has_more,
+        }

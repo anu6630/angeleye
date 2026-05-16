@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiClient, NotebookCard } from '@/lib/api-client';
+import { useSocialStore } from '@/stores/social-store';
 
 interface FeedState {
   notebooks: NotebookCard[];
@@ -27,6 +28,7 @@ export const useFeedStore = create<FeedState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.getFeed(cursor);
+      useSocialStore.getState().hydrateSavedFromFeed(response.items);
       set({
         notebooks: response.items,
         cursor: response.next_cursor,
@@ -45,6 +47,7 @@ export const useFeedStore = create<FeedState>()((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await apiClient.getFeed(state.cursor || undefined);
+      useSocialStore.getState().hydrateSavedFromFeed(response.items);
       set((prevState) => ({
         notebooks: [...prevState.notebooks, ...response.items],
         cursor: response.next_cursor,

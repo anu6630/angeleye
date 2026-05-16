@@ -23,6 +23,7 @@ from app.api.v1.auth.schemas import (
     RegisterResponse
 )
 from app.api.v1.dependencies import rate_limit_authorization
+from app.services.search_service import SearchService
 from app.services.avatar_service import build_avatar_url
 
 router = APIRouter()
@@ -264,6 +265,8 @@ async def complete_profile(
     if not user:
         raise HTTPException(status_code=400, detail="Username already taken or user not found")
 
+    SearchService(db).index_user(user)
+
     # Create JWT tokens (AUTH-03, D-09, D-12)
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
@@ -442,6 +445,8 @@ async def register(
     new_profile = Profile(user_id=new_user.id)
     db.add(new_profile)
     db.commit()
+    db.refresh(new_user)
+    SearchService(db).index_user(new_user)
 
     # Create tokens
     access_token = create_access_token(new_user.id)

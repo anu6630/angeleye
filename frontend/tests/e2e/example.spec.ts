@@ -8,5 +8,5 @@ import { test, expect } from '@playwright/test'
 
 test('placeholder E2E test', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveTitle(/NotebookSocial/)
+  await expect(page).toHaveTitle(/Pulze/)
 })

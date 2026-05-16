@@ -179,7 +179,16 @@ A social media platform where Python notebooks are the content. Users create not
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+### UX and cognitive load
+
+When designing or changing UI flows (including agent-assisted work), optimize for clarity and low effort:
+
+- Prefer **fewer steps** and **clear primary actions** on the main path.
+- Use **progressive disclosure**: advanced or rare options stay secondary (e.g. settings, menus).
+- Stay **consistent** with existing product surfaces (feed, profile, saved, groups) so users reuse mental models.
+- Agents should treat this as a default bar for new screens and workflows.
+
+Other engineering conventions can accumulate here or in a dedicated `CONVENTIONS.md` as patterns stabilize.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->

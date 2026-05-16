@@ -15,6 +15,13 @@ class Profile(Base):
     avatar_thumbnail_s3_key = Column(String(500), nullable=True)
     avatar_uploaded_at = Column(DateTime(timezone=True), nullable=True)
     avatar_content_type = Column(String(50), nullable=True)
+    
+    banner_url = Column(String(500), nullable=True)
+    banner_s3_key = Column(String(500), nullable=True)
+    banner_thumbnail_s3_key = Column(String(500), nullable=True)
+    banner_uploaded_at = Column(DateTime(timezone=True), nullable=True)
+    banner_content_type = Column(String(50), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

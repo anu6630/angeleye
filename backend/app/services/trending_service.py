@@ -94,6 +94,23 @@ class TrendingService:
             "comment_count": comment_count
         }
 
+    def remove_from_trending(self, notebook_id: int) -> None:
+        """Remove notebook from global trending ZSET (e.g. group-scoped posts)."""
+        try:
+            self.redis.zrem(self.KEY_TRENDING_ALL, f"notebook:{notebook_id}")
+        except Exception:
+            pass
+
+    def _notebook_in_global_feed(self, notebook_id: int) -> bool:
+        row = (
+            self.db.query(Notebook.group_id)
+            .filter(Notebook.id == notebook_id)
+            .first()
+        )
+        if not row:
+            return False
+        return row.group_id is None
+
     def update_notebook_score(self, notebook_id: int) -> None:
         """Update notebook's score in Redis cache
 
@@ -107,6 +124,10 @@ class TrendingService:
         Raises:
             ValueError: If notebook not found
         """
+        if not self._notebook_in_global_feed(notebook_id):
+            self.remove_from_trending(notebook_id)
+            return
+
         # Calculate score
         score_data = self.calculate_engagement_score(notebook_id)
 
@@ -138,6 +159,9 @@ class TrendingService:
             notebook_id: ID of notebook to update
             event_type: Type of event ("like", "comment", "view")
         """
+        if not self._notebook_in_global_feed(notebook_id):
+            return
+
         # Determine weight
         if event_type == "like":
             weight = self.WEIGHT_LIKE
@@ -217,7 +241,8 @@ class TrendingService:
             self.db.query(Notebook.id)
             .filter(
                 Notebook.is_published == True,
-                Notebook.is_archived == False
+                Notebook.is_archived == False,
+                Notebook.group_id.is_(None),
             )
             .all()
         )

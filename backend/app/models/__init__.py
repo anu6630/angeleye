@@ -9,6 +9,8 @@ from app.models.follow import Follow
 from app.models.feed_event import FeedEvent
 from app.models.notebook_save import NotebookSave
 from app.models.group import Group, GroupMembership, GroupInvite, GroupAdminPromotionRequest
+from app.models.friend import FriendRequest, Friendship
+from app.models.conversation import Conversation, ConversationParticipant, Message, MessageReaction
 
 __all__ = [
     "User",
@@ -25,4 +27,10 @@ __all__ = [
     "GroupMembership",
     "GroupInvite",
     "GroupAdminPromotionRequest",
+    "FriendRequest",
+    "Friendship",
+    "Conversation",
+    "ConversationParticipant",
+    "Message",
+    "MessageReaction",
 ]

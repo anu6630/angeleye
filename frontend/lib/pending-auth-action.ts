@@ -1,10 +1,11 @@
 import { apiClient, NotebookResponse } from '@/lib/api-client';
+import { useSocialStore } from '@/stores/social-store';
 
 const STORAGE_KEY = 'pending-auth-action';
 const VERSION = 1;
 const TTL_MS = 15 * 60 * 1000;
 
-export type PendingActionType = 'like' | 'fork' | 'follow';
+export type PendingActionType = 'like' | 'fork' | 'follow' | 'save' | 'friend';
 
 export interface PendingAction {
   version: number;
@@ -32,14 +33,15 @@ function validate(action: unknown): PendingAction | null {
   if (!action || typeof action !== 'object') return null;
   const a = action as PendingAction;
   if (a.version !== VERSION) return null;
-  if (!['like', 'fork', 'follow'].includes(a.type)) return null;
+  if (!['like', 'fork', 'follow', 'save', 'friend'].includes(a.type)) return null;
   if (typeof a.createdAt !== 'number') return null;
   if (Date.now() - a.createdAt > TTL_MS) return null;
   if (typeof a.nonce !== 'string' || a.nonce.length < 8) return null;
   if (typeof a.returnPath !== 'string') return null;
 
-  if ((a.type === 'like' || a.type === 'fork') && !isValidId(a.notebookId)) return null;
-  if (a.type === 'follow' && !isValidId(a.targetUserId)) return null;
+  if ((a.type === 'like' || a.type === 'fork' || a.type === 'save') && !isValidId(a.notebookId))
+    return null;
+  if ((a.type === 'follow' || a.type === 'friend') && !isValidId(a.targetUserId)) return null;
 
   return {
     ...a,
@@ -102,6 +104,15 @@ export async function executePendingAction(action: PendingAction): Promise<Noteb
   }
   if (action.type === 'follow' && action.targetUserId) {
     await apiClient.followUser(action.targetUserId);
+    return null;
+  }
+  if (action.type === 'save' && action.notebookId) {
+    await apiClient.saveNotebook(action.notebookId);
+    useSocialStore.getState().addSavedNotebook(action.notebookId);
+    return null;
+  }
+  if (action.type === 'friend' && action.targetUserId) {
+    await apiClient.sendFriendRequest(action.targetUserId);
     return null;
   }
   throw new Error('Invalid pending action payload');

@@ -59,6 +59,17 @@ class Settings(BaseSettings):
     NOTEBOOKS_BUCKET: str = "notebooks"
     BANNERS_BUCKET: str = "banners"
     AVATARS_BUCKET: str = "avatars"
+    GROUP_ASSETS_BUCKET: str = "group-assets"
+    CHAT_ATTACHMENTS_BUCKET: str = "chat-attachments"
+
+    # Direct messages — chat attachments
+    MAX_CHAT_ATTACHMENT_MB: int = 10
+    ALLOWED_CHAT_ATTACHMENT_MIMES: str = (
+        "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,"
+        "application/pdf,text/plain"
+    )
+    CHAT_MESSAGE_RATE_PER_MINUTE: int = 60
+    CHAT_ATTACHMENT_PRESIGN_RATE_PER_MINUTE: int = 20
 
     # AWS S3 (production)
     AWS_ACCESS_KEY_ID: str = ""

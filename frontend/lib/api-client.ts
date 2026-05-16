@@ -8,6 +8,25 @@ export interface User {
   is_verified: boolean;
   bio?: string | null;
   avatar_url?: string | null;
+  banner_url?: string | null;
+  created_at: string;
+}
+
+export type UnifiedSearchResult = 
+  | { type: 'notebook'; data: NotebookResponse }
+  | { type: 'user'; data: { username: string; display_name: string; avatar_url?: string; id: number } }
+  | { type: 'group'; data: { name: string; slug: string; description?: string; icon_url?: string; id: number } };
+
+export interface PublicProfileResponse {
+  user_id: number;
+  username: string;
+  avatar_url: string | null;
+  banner_url?: string | null;
+  bio: string | null;
+  published_notebook_count: number;
+  likes_received_count: number;
+  saved_notebook_count: number;
+  group_count: number;
   created_at: string;
 }
 
@@ -15,10 +34,20 @@ export interface PublicProfile {
   user_id: number;
   username: string;
   avatar_url?: string | null;
+  banner_url?: string | null;
   bio?: string | null;
   published_notebook_count: number;
   likes_received_count: number;
+  saved_notebook_count: number;
+  group_count: number;
   created_at: string;
+}
+
+export interface ProfileStatsResponse {
+  published_notebook_count: number;
+  likes_received_count: number;
+  saved_notebook_count: number;
+  group_count: number;
 }
 
 export interface AuthResponse {
@@ -26,6 +55,7 @@ export interface AuthResponse {
   username: string;
   email: string;
   avatar_url?: string | null;
+  banner_url?: string | null;
   bio?: string | null;
 }
 
@@ -293,6 +323,73 @@ export interface GroupPresenceResponse {
   online_user_count: number;
 }
 
+export interface NotebookPresenceResponse {
+  online_viewer_count: number;
+}
+
+/** Friends & direct messages */
+export interface FriendUserBrief {
+  id: number;
+  username: string;
+  avatar_url?: string | null;
+}
+
+export interface FriendRequestRow {
+  id: number;
+  requester_id: number;
+  addressee_id: number;
+  status: string;
+  created_at: string;
+  user?: FriendUserBrief | null;
+}
+
+export interface FriendRelationship {
+  status: string;
+  incoming_request_id?: number | null;
+}
+
+export interface ConversationListItem {
+  conversation_id: number;
+  other_user: FriendUserBrief;
+  last_message_preview?: string | null;
+  last_message_at?: string | null;
+  last_message_sender_id?: number | null;
+  last_message_delivered_at?: string | null;
+  last_message_read_at?: string | null;
+}
+
+export interface ChatReaction {
+  user_id: number;
+  emoji: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversation_id: number;
+  sender_id: number;
+  body?: string | null;
+  quoted_message_id?: number | null;
+  attachment_key?: string | null;
+  attachment_mime?: string | null;
+  attachment_size?: number | null;
+  attachment_filename?: string | null;
+  created_at: string;
+  delivered_at?: string | null;
+  read_at?: string | null;
+  reactions: ChatReaction[];
+}
+
+export interface ChatMessagesPage {
+  messages: ChatMessage[];
+  next_cursor?: number | null;
+}
+
+export interface ChatPresignResponse {
+  upload_url: string;
+  attachment_key: string;
+  expires_in: number;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -405,7 +502,37 @@ class ApiClient {
     await this.request('/profiles/me/avatar', { method: 'DELETE' });
   }
 
-  async getProfileStats(): Promise<{ published_notebook_count: number; likes_received_count: number }> {
+  async uploadMyBanner(file: File, cropData: { crop_x: number; crop_y: number; crop_width: number; crop_height: number }): Promise<{ banner_url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('crop_x', String(Math.round(cropData.crop_x)));
+    formData.append('crop_y', String(Math.round(cropData.crop_y)));
+    formData.append('crop_width', String(Math.round(cropData.crop_width)));
+    formData.append('crop_height', String(Math.round(cropData.crop_height)));
+
+    const response = await fetch(`${this.baseUrl}/profiles/me/banner`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+    if (!response.ok) {
+      let errorMessage = 'Failed to upload banner';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || error.detail || errorMessage;
+      } catch {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+    return response.json();
+  }
+
+  async deleteMyBanner(): Promise<void> {
+    await this.request('/profiles/me/banner', { method: 'DELETE' });
+  }
+
+  async getProfileStats(): Promise<ProfileStatsResponse> {
     return this.request('/profiles/stats');
   }
 
@@ -672,6 +799,18 @@ class ApiClient {
     );
   }
 
+  async globalSearch(
+    query: string,
+    limit: number = 30
+  ): Promise<{ hits: UnifiedSearchResult[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append('q', query);
+    params.append('limit', limit.toString());
+    return this.request<{ hits: UnifiedSearchResult[]; total: number }>(
+      `/search/global?${params.toString()}`
+    );
+  }
+
   // Groups
   async listGroups(limit: number = 50, offset: number = 0): Promise<GroupListApiResponse> {
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
@@ -737,6 +876,30 @@ class ApiClient {
 
   async deleteGroupPresence(slug: string): Promise<void> {
     return this.request<void>(`/groups/${encodeURIComponent(slug)}/presence`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getNotebookPresence(notebookId: number): Promise<NotebookPresenceResponse> {
+    return this.request<NotebookPresenceResponse>(`/notebooks/${notebookId}/presence`);
+  }
+
+  async postNotebookPresenceHeartbeat(
+    notebookId: number,
+    body?: { anonymous_id?: string }
+  ): Promise<void> {
+    return this.request<void>(`/notebooks/${notebookId}/presence/heartbeat`, {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
+    });
+  }
+
+  async deleteNotebookPresence(notebookId: number, anonymousId?: string): Promise<void> {
+    const q =
+      anonymousId !== undefined && anonymousId !== ''
+        ? `?anonymous_id=${encodeURIComponent(anonymousId)}`
+        : '';
+    return this.request<void>(`/notebooks/${notebookId}/presence${q}`, {
       method: 'DELETE',
     });
   }
@@ -823,6 +986,137 @@ class ApiClient {
 
   async deleteGroupBanner(slug: string): Promise<void> {
     return this.request<void>(`/groups/${encodeURIComponent(slug)}/banner`, { method: 'DELETE' });
+  }
+
+  // Friends
+  async listFriends(): Promise<FriendUserBrief[]> {
+    return this.request<FriendUserBrief[]>('/friends');
+  }
+
+  async listOnlineFriends(): Promise<FriendUserBrief[]> {
+    return this.request<FriendUserBrief[]>('/friends/online');
+  }
+
+  async getFriendRelationship(otherUserId: number): Promise<FriendRelationship> {
+    return this.request<FriendRelationship>(`/friends/relationship/${otherUserId}`);
+  }
+
+  async sendFriendRequest(addresseeId: number): Promise<FriendRequestRow> {
+    return this.request<FriendRequestRow>('/friends/requests', {
+      method: 'POST',
+      body: JSON.stringify({ addressee_id: addresseeId }),
+    });
+  }
+
+  async listFriendRequests(direction: 'incoming' | 'outgoing'): Promise<FriendRequestRow[]> {
+    return this.request<FriendRequestRow[]>(`/friends/requests?direction=${direction}`);
+  }
+
+  async acceptFriendRequest(requestId: number): Promise<void> {
+    await this.request(`/friends/requests/${requestId}/accept`, { method: 'POST' });
+  }
+
+  async rejectFriendRequest(requestId: number): Promise<void> {
+    await this.request(`/friends/requests/${requestId}/reject`, { method: 'POST' });
+  }
+
+  async cancelFriendRequest(requestId: number): Promise<void> {
+    await this.request(`/friends/requests/${requestId}`, { method: 'DELETE' });
+  }
+
+  async removeFriend(otherUserId: number): Promise<void> {
+    await this.request(`/friends/${otherUserId}`, { method: 'DELETE' });
+  }
+
+  // Conversations / chat
+  async listConversations(): Promise<ConversationListItem[]> {
+    return this.request<ConversationListItem[]>('/conversations');
+  }
+
+  async openDirectConversation(otherUserId: number): Promise<{ conversation_id: number }> {
+    return this.request<{ conversation_id: number }>('/conversations/direct', {
+      method: 'POST',
+      body: JSON.stringify({ other_user_id: otherUserId }),
+    });
+  }
+
+  async getConversationMessages(
+    conversationId: number,
+    cursor?: number,
+    limit?: number
+  ): Promise<ChatMessagesPage> {
+    const p = new URLSearchParams();
+    if (cursor != null) p.set('cursor', String(cursor));
+    if (limit != null) p.set('limit', String(limit));
+    const q = p.toString();
+    return this.request<ChatMessagesPage>(
+      `/conversations/${conversationId}/messages${q ? `?${q}` : ''}`
+    );
+  }
+
+  async postConversationMessage(
+    conversationId: number,
+    payload: {
+      body?: string | null;
+      quoted_message_id?: number | null;
+      attachment_key?: string | null;
+      attachment_mime?: string | null;
+      attachment_size?: number | null;
+      attachment_filename?: string | null;
+    }
+  ): Promise<ChatMessage> {
+    return this.request<ChatMessage>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async presignChatAttachment(
+    conversationId: number,
+    payload: { filename: string; content_type: string; size_bytes: number }
+  ): Promise<ChatPresignResponse> {
+    return this.request<ChatPresignResponse>(
+      `/conversations/${conversationId}/attachments/presign`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  async uploadToPresignedUrl(
+    uploadUrl: string,
+    file: File,
+    contentType: string
+  ): Promise<void> {
+    const res = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file,
+    });
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.status}`);
+    }
+  }
+
+  async addMessageReaction(messageId: number, emoji: string): Promise<ChatReaction> {
+    return this.request<ChatReaction>(`/messages/${messageId}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ emoji }),
+    });
+  }
+
+  async removeMessageReaction(messageId: number, emoji: string): Promise<void> {
+    const q = encodeURIComponent(emoji);
+    await this.request<void>(`/messages/${messageId}/reactions?emoji=${q}`, { method: 'DELETE' });
+  }
+
+  async getUserPublicNotebooks(username: string, cursor?: string, limit: number = 20): Promise<FeedResponse> {
+    const p = new URLSearchParams();
+    p.set('limit', String(limit));
+    if (cursor) p.set('cursor', cursor);
+    const q = p.toString();
+    return this.request<FeedResponse>(`/notebooks/users/${username}/public${q ? `?${q}` : ''}`);
   }
 }
 

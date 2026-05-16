@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (.npmrc: legacy-peer-deps for @emoji-mart/react + React 19)
+COPY package*.json .npmrc ./
 
 # Install dependencies
 RUN npm ci
@@ -28,8 +28,8 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy necessary files from builder
-RUN mkdir -p /app/public
+# Standalone server + static assets; copy public/ for favicons, etc. (Next.js docs)
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 

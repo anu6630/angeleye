@@ -33,6 +33,44 @@ class User(Base):
     followers = relationship("Follow", foreign_keys="Follow.following_id", back_populates="following")
     following = relationship("Follow", foreign_keys="Follow.follower_id", back_populates="follower")
     feed_events = relationship("FeedEvent", back_populates="user", cascade="all, delete-orphan")
+    notebook_saves = relationship("NotebookSave", back_populates="user", cascade="all, delete-orphan")
+
+    groups_created = relationship(
+        "Group", foreign_keys="Group.created_by_user_id", back_populates="creator"
+    )
+    group_memberships = relationship("GroupMembership", back_populates="user")
+    group_invites_sent = relationship(
+        "GroupInvite", foreign_keys="GroupInvite.inviter_user_id", back_populates="inviter"
+    )
+    group_invites_received = relationship(
+        "GroupInvite", foreign_keys="GroupInvite.invitee_user_id", back_populates="invitee"
+    )
+    group_admin_requests_proposed = relationship(
+        "GroupAdminPromotionRequest",
+        foreign_keys="GroupAdminPromotionRequest.proposer_user_id",
+        back_populates="proposer",
+    )
+    group_admin_requests_received = relationship(
+        "GroupAdminPromotionRequest",
+        foreign_keys="GroupAdminPromotionRequest.candidate_user_id",
+        back_populates="candidate",
+    )
+
+    friend_requests_sent = relationship(
+        "FriendRequest", foreign_keys="FriendRequest.requester_id", back_populates="requester"
+    )
+    friend_requests_received = relationship(
+        "FriendRequest", foreign_keys="FriendRequest.addressee_id", back_populates="addressee"
+    )
+    friendships_low = relationship(
+        "Friendship", foreign_keys="Friendship.user_low_id", back_populates="user_low"
+    )
+    friendships_high = relationship(
+        "Friendship", foreign_keys="Friendship.user_high_id", back_populates="user_high"
+    )
+    conversation_participations = relationship("ConversationParticipant", back_populates="user")
+    messages_sent = relationship("Message", back_populates="sender")
+    message_reactions = relationship("MessageReaction", back_populates="user")
 
     __table_args__ = (
         Index('ix_users_email_lower', func.lower(email)),

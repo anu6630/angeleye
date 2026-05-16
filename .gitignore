@@ -75,6 +75,9 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Local batch test credentials (see backend/create_jon_test_users.py)
+/jon.json
+
 # MemPalace per-project files (issue #185)
 mempalace.yaml
 entities.json

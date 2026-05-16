@@ -1,16 +1,26 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, File, HTTPException, status, Request, Query, UploadFile
 from fastapi.responses import StreamingResponse
+from redis.exceptions import RedisError
 from sqlalchemy.orm import Session
 from typing import Optional
 
+from app.api.v1.dependencies import optional_auth, rate_limit_general, require_auth
 from app.db.session import get_db
 from app.services.notebook_service import NotebookService
 from app.services.feed_service import FeedService
 from app.services.fork_service import ForkService
 from app.services.storage_service import StorageService
 from app.services.banner_service import BannerService, build_banner_urls
-from app.schemas.notebook import NotebookCreate, NotebookUpdate, NotebookResponse
-from app.api.v1.dependencies import require_auth, optional_auth
+from app.schemas.notebook import (
+    NotebookCreate,
+    NotebookPresenceHeartbeatBody,
+    NotebookPresenceResponse,
+    NotebookUpdate,
+    NotebookResponse,
+)
+from app.services.notebook_presence_service import NotebookPresenceService
 from app.core.config import settings
 
 router = APIRouter()
@@ -219,6 +229,29 @@ async def get_notebook_output(
         raise HTTPException(status_code=404, detail=f"Output not found: {str(e)}")
 
 
+@router.get("/users/{username}/public")
+async def get_user_public_notebooks(
+    username: str,
+    cursor: Optional[str] = None,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user_id: Optional[int] = Depends(optional_auth)
+):
+    """Get a user's public non-group notebooks."""
+    from app.models.user import User
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    feed_service = FeedService(db)
+    return feed_service.list_user_public_notebooks(
+        target_user_id=user.id,
+        viewer_id=current_user_id,
+        limit=limit,
+        cursor=cursor
+    )
+
+
 @router.get("/notebooks/feed")
 async def get_feed(
     cursor: Optional[str] = None,
@@ -255,7 +288,7 @@ async def upload_notebook_banner(
     """
     user_id = await require_auth(request)
     banner_service = BannerService(db)
-    notebook, full_url, thumb_url = banner_service.upload_banner(notebook_id, user_id, file)
+    notebook, full_url, thumb_url = banner_service.upload_notebook_banner(notebook_id, user_id, file)
     return {
         "banner_url": full_url,
         "banner_thumbnail_url": thumb_url,
@@ -272,7 +305,7 @@ async def delete_notebook_banner(
     """Remove the banner from a notebook (owner-only)."""
     user_id = await require_auth(request)
     banner_service = BannerService(db)
-    banner_service.delete_banner(notebook_id, user_id)
+    banner_service.delete_notebook_banner(notebook_id, user_id)
     return None
 
 
@@ -378,6 +411,121 @@ async def get_notebook(
         pass  # Metrics failure shouldn't break the request
 
     return notebook
+
+
+@router.get(
+    "/notebooks/{notebook_id}/presence",
+    response_model=NotebookPresenceResponse,
+)
+async def get_notebook_presence(
+    notebook_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    viewer_id = await optional_auth(request)
+    notebook_service = NotebookService(db)
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model or not notebook_service.can_view_notebook(nb_model, viewer_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
+        )
+    presence = NotebookPresenceService()
+    try:
+        n = presence.online_viewer_count(notebook_id)
+    except RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Presence temporarily unavailable",
+        )
+    return NotebookPresenceResponse(online_viewer_count=n)
+
+
+@router.post(
+    "/notebooks/{notebook_id}/presence/heartbeat",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit_general(60))],
+)
+async def post_notebook_presence_heartbeat(
+    request: Request,
+    notebook_id: int,
+    body: NotebookPresenceHeartbeatBody,
+    db: Session = Depends(get_db),
+):
+    viewer_id = await optional_auth(request)
+    notebook_service = NotebookService(db)
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model or not notebook_service.can_view_notebook(nb_model, viewer_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
+        )
+    if viewer_id is not None:
+        member_key = f"u:{viewer_id}"
+    else:
+        if body.anonymous_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="anonymous_id is required when not authenticated",
+            )
+        member_key = f"a:{body.anonymous_id}"
+
+    presence = NotebookPresenceService()
+    try:
+        presence.touch(notebook_id, member_key)
+    except RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Presence temporarily unavailable",
+        )
+    return None
+
+
+@router.delete(
+    "/notebooks/{notebook_id}/presence",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit_general(60))],
+)
+async def delete_notebook_presence(
+    request: Request,
+    notebook_id: int,
+    anonymous_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    viewer_id = await optional_auth(request)
+    notebook_service = NotebookService(db)
+    nb_model = notebook_service.get_notebook_model(notebook_id)
+    if not nb_model or not notebook_service.can_view_notebook(nb_model, viewer_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notebook not found",
+        )
+    if viewer_id is not None:
+        member_key = f"u:{viewer_id}"
+    else:
+        if not anonymous_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="anonymous_id is required when not authenticated",
+            )
+        try:
+            parsed = UUID(anonymous_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="invalid anonymous_id",
+            )
+        member_key = f"a:{parsed}"
+
+    presence = NotebookPresenceService()
+    try:
+        presence.leave(notebook_id, member_key)
+    except RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Presence temporarily unavailable",
+        )
+    return None
 
 
 @router.post("/notebooks/{notebook_id}/fork", response_model=NotebookResponse, status_code=status.HTTP_201_CREATED)

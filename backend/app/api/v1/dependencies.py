@@ -105,3 +105,23 @@ async def optional_auth(request: Request) -> Optional[int]:
 def get_db_session(db: Session = Depends(get_db)) -> Session:
     """Get database session dependency"""
     return db
+
+
+async def rate_limit_chat_messages(request: Request, user_id: int = Depends(require_auth)) -> int:
+    await rate_limiter.check_rate_limit(
+        request,
+        limit=settings.CHAT_MESSAGE_RATE_PER_MINUTE,
+        period="minute",
+        key=f"chat_msg:{user_id}",
+    )
+    return user_id
+
+
+async def rate_limit_chat_presign(request: Request, user_id: int = Depends(require_auth)) -> int:
+    await rate_limiter.check_rate_limit(
+        request,
+        limit=settings.CHAT_ATTACHMENT_PRESIGN_RATE_PER_MINUTE,
+        period="minute",
+        key=f"chat_presign:{user_id}",
+    )
+    return user_id

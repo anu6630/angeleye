@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
+from uuid import UUID
 
 
 class NotebookCell(BaseModel):
@@ -91,3 +92,13 @@ class NotebookListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class NotebookPresenceResponse(BaseModel):
+    online_viewer_count: int
+
+
+class NotebookPresenceHeartbeatBody(BaseModel):
+    """Anonymous viewers must send a stable client-generated UUID."""
+
+    anonymous_id: Optional[UUID] = None

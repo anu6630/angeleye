@@ -12,6 +12,8 @@ vi.mock('@/lib/api-client', () => ({
     unfollowUser: vi.fn(),
     getCurrentUser: vi.fn(),
     getUserFollowing: vi.fn(),
+    saveNotebook: vi.fn(),
+    unsaveNotebook: vi.fn(),
   },
 }))
 
@@ -33,6 +35,8 @@ describe('social-store', () => {
     expect(state.followingIds).toEqual(new Set())
     expect(state.followersCount).toEqual({})
     expect(state.followingCount).toEqual({})
+    expect(state.savedNotebookIds).toEqual(new Set())
+    expect(state.notebookSaveCounts).toEqual({})
   })
 
   it('toggles like from not liked to liked', async () => {
@@ -220,6 +224,35 @@ describe('social-store', () => {
     expect(newState.followingCount[1]).toBe(2)
   })
 
+  it('toggles save on', async () => {
+    vi.mocked(apiClient.saveNotebook).mockResolvedValue({ message: 'Saved', notebook_id: 7 })
+
+    await useSocialStore.getState().toggleSave(7)
+    expect(apiClient.saveNotebook).toHaveBeenCalledWith(7)
+    expect(useSocialStore.getState().isSaved(7)).toBe(true)
+  })
+
+  it('toggles save off', async () => {
+    vi.mocked(apiClient.unsaveNotebook).mockResolvedValue({ message: 'Removed', notebook_id: 8 })
+    useSocialStore.setState({ savedNotebookIds: new Set([8]) })
+
+    await useSocialStore.getState().toggleSave(8)
+    expect(apiClient.unsaveNotebook).toHaveBeenCalledWith(8)
+    expect(useSocialStore.getState().isSaved(8)).toBe(false)
+  })
+
+  it('hydrates saved ids from feed items', () => {
+    useSocialStore.getState().hydrateSavedFromFeed([
+      { id: 1, is_saved: true, save_count: 4 } as any,
+      { id: 2, is_saved: false, save_count: 0 } as any,
+    ])
+    const s = useSocialStore.getState()
+    expect(s.isSaved(1)).toBe(true)
+    expect(s.isSaved(2)).toBe(false)
+    expect(s.notebookSaveCounts[1]).toBe(4)
+    expect(s.notebookSaveCounts[2]).toBe(0)
+  })
+
   it('resets state', () => {
     useSocialStore.setState({
       likedNotebooks: new Set([123]),
@@ -229,6 +262,8 @@ describe('social-store', () => {
       followingIds: new Set([456]),
       followersCount: { 456: 1 },
       followingCount: { 456: 1 },
+      savedNotebookIds: new Set([99]),
+      notebookSaveCounts: { 99: 3 },
     })
 
     useSocialStore.getState().reset()
@@ -241,5 +276,7 @@ describe('social-store', () => {
     expect(state.followingIds).toEqual(new Set())
     expect(state.followersCount).toEqual({})
     expect(state.followingCount).toEqual({})
+    expect(state.savedNotebookIds).toEqual(new Set())
+    expect(state.notebookSaveCounts).toEqual({})
   })
 })

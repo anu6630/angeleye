@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { apiClient, User } from '@/lib/api-client';
+import { clearSharedClientState } from '@/lib/session-isolation';
 
 interface AuthState {
   user: User | null;
@@ -62,9 +63,11 @@ export const useAuthStore = create<AuthState>()(
       fetchUser: async () => {
         set({ isLoading: true });
         try {
-          console.log('Fetching current user...');
+          const prevId = get().user?.id ?? null;
           const user = await apiClient.getCurrentUser();
-          console.log('User fetched successfully:', user);
+          if (prevId !== null && prevId !== user.id) {
+            await clearSharedClientState();
+          }
           set({
             user,
             isAuthenticated: true,
@@ -72,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
           });
         } catch (error) {
           console.error('Failed to fetch user:', error);
-          // User not authenticated, clear state
+          await clearSharedClientState().catch(() => {});
           set({
             user: null,
             isAuthenticated: false,
@@ -87,6 +90,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
+          await clearSharedClientState().catch(() => {});
           set({
             user: null,
             isAuthenticated: false,
@@ -100,12 +104,18 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auth-storage',
+      name: 'auth-storage-v2',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        isAuthenticated: state.isAuthenticated,
-        user: state.user,
+        pendingUserId: state.pendingUserId,
       }),
+      onRehydrateStorage: () => () => {
+        try {
+          localStorage.removeItem('auth-storage');
+        } catch {
+          /* ignore */
+        }
+      },
     }
   )
 );

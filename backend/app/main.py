@@ -23,6 +23,9 @@ from app.api.v1.search.router import router as search_router
 from app.api.v1.feed.router import router as feed_router
 from app.api.v1.saves.router import router as saves_router
 from app.api.v1.groups.router import router as groups_router
+from app.api.v1.friends.router import router as friends_router
+from app.api.v1.conversations.router import router as conversations_router
+from app.api.v1.ws.chat import router as chat_ws_router
 from app.core.config import settings
 from app.core.cache import cache
 
@@ -67,6 +70,9 @@ app.include_router(search_router, prefix="/api/v1/search", tags=["search"])
 app.include_router(feed_router, prefix="/api/v1", tags=["feed"])
 app.include_router(saves_router, prefix="/api/v1", tags=["saves"])
 app.include_router(groups_router, prefix="/api/v1", tags=["groups"])
+app.include_router(friends_router, prefix="/api/v1", tags=["friends"])
+app.include_router(conversations_router, prefix="/api/v1", tags=["conversations"])
+app.include_router(chat_ws_router, prefix="/api/v1")
 
 # Global exception handler for custom API errors (D-23, D-24, D-25)
 @app.exception_handler(APIError)
@@ -106,6 +112,7 @@ async def ensure_storage_buckets():
             settings.BANNERS_BUCKET,
             settings.AVATARS_BUCKET,
             settings.GROUP_ASSETS_BUCKET,
+            settings.CHAT_ATTACHMENTS_BUCKET,
         ):
             try:
                 storage.ensure_bucket_exists(bucket)

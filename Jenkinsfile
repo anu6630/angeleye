@@ -37,7 +37,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh "helm upgrade --install ${APP_NAME} /Volumes/SSDX\ 1/codes/k3s/infra/helm/charts/social-media -n ${NAMESPACE}"
+                sh "helm upgrade --install ${APP_NAME} '/Volumes/SSDX 1/codes/k3s/infra/helm/charts/social-media' -n ${NAMESPACE}"
             }
         }
     }

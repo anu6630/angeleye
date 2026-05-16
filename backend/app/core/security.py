@@ -84,6 +84,16 @@ async def get_current_user_id(request: Request) -> Optional[int]:
     return None
 
 
+def parse_user_id_from_token(token: Optional[str]) -> Optional[int]:
+    """Resolve user id from a raw JWT access token string (WebSocket, tests)."""
+    if not token:
+        return None
+    user_id = verify_token(token, "access")
+    if user_id:
+        return int(user_id)
+    return None
+
+
 def encrypt_token(token: str) -> str:
     """Encrypt OAuth token at rest (SEC-06, D-04, D-28)"""
     return cipher_suite.encrypt(token.encode()).decode()

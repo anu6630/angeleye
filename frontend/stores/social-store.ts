@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { apiClient, CommentResponse } from '@/lib/api-client';
+import { apiClient, CommentResponse, NotebookCard } from '@/lib/api-client';
 
 interface SocialState {
   // Like state
@@ -17,6 +17,10 @@ interface SocialState {
   followersCount: Record<number, number>;
   followingCount: Record<number, number>;
 
+  // Saved notebooks (bookmarks)
+  savedNotebookIds: Set<number>;
+  notebookSaveCounts: Record<number, number>;
+
   // Like actions
   toggleLike: (notebookId: number) => Promise<void>;
   isLiked: (notebookId: number) => boolean;
@@ -33,6 +37,17 @@ interface SocialState {
   isFollowing: (userId: number) => boolean;
   initializeFollows: () => Promise<void>;
 
+  toggleSave: (notebookId: number) => Promise<void>;
+  isSaved: (notebookId: number) => boolean;
+  hydrateSavedFromFeed: (items: NotebookCard[]) => void;
+  addSavedNotebook: (notebookId: number) => void;
+  /** Set saved flag from server (e.g. GET /saves/check) without toggling. */
+  syncSavedFromCheck: (notebookId: number, saved: boolean) => void;
+  /** Prime save_count when feed has not hydrated this id yet. */
+  seedNotebookSaveCount: (notebookId: number, count: number) => void;
+  /** Replace save_count from GET /notebooks/:id (detail view / refetch). */
+  setNotebookSaveCount: (notebookId: number, count: number) => void;
+
   reset: () => void;
 }
 
@@ -46,6 +61,8 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
   followingIds: new Set(),
   followersCount: {},
   followingCount: {},
+  savedNotebookIds: new Set(),
+  notebookSaveCounts: {},
 
   toggleLike: async (notebookId) => {
     const state = get();
@@ -296,6 +313,95 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
     }
   },
 
+  toggleSave: async (notebookId) => {
+    const state = get();
+    const wasSaved = state.savedNotebookIds.has(notebookId);
+    const currentSaveCount = state.notebookSaveCounts[notebookId] ?? 0;
+
+    set((prev) => {
+      const next = new Set(prev.savedNotebookIds);
+      if (wasSaved) next.delete(notebookId);
+      else next.add(notebookId);
+      return {
+        savedNotebookIds: next,
+        notebookSaveCounts: {
+          ...prev.notebookSaveCounts,
+          [notebookId]: Math.max(0, currentSaveCount + (wasSaved ? -1 : 1)),
+        },
+      };
+    });
+
+    try {
+      if (wasSaved) {
+        await apiClient.unsaveNotebook(notebookId);
+      } else {
+        await apiClient.saveNotebook(notebookId);
+      }
+    } catch (error) {
+      set((prev) => {
+        const next = new Set(prev.savedNotebookIds);
+        if (wasSaved) next.add(notebookId);
+        else next.delete(notebookId);
+        return {
+          savedNotebookIds: next,
+          notebookSaveCounts: {
+            ...prev.notebookSaveCounts,
+            [notebookId]: currentSaveCount,
+          },
+        };
+      });
+      throw error;
+    }
+  },
+
+  isSaved: (notebookId) => get().savedNotebookIds.has(notebookId),
+
+  hydrateSavedFromFeed: (items) =>
+    set((prev) => {
+      const next = new Set(prev.savedNotebookIds);
+      const nextSaveCounts = { ...prev.notebookSaveCounts };
+      for (const item of items) {
+        if (item.is_saved === true) next.add(item.id);
+        else if (item.is_saved === false) next.delete(item.id);
+        if (typeof item.save_count === 'number') {
+          nextSaveCounts[item.id] = item.save_count;
+        }
+      }
+      return { savedNotebookIds: next, notebookSaveCounts: nextSaveCounts };
+    }),
+
+  addSavedNotebook: (notebookId) =>
+    set((prev) => {
+      const next = new Set(prev.savedNotebookIds);
+      next.add(notebookId);
+      const c = prev.notebookSaveCounts[notebookId] ?? 0;
+      return {
+        savedNotebookIds: next,
+        notebookSaveCounts: { ...prev.notebookSaveCounts, [notebookId]: c + 1 },
+      };
+    }),
+
+  syncSavedFromCheck: (notebookId, saved) =>
+    set((prev) => {
+      const next = new Set(prev.savedNotebookIds);
+      if (saved) next.add(notebookId);
+      else next.delete(notebookId);
+      return { savedNotebookIds: next };
+    }),
+
+  seedNotebookSaveCount: (notebookId, count) =>
+    set((prev) => {
+      if (prev.notebookSaveCounts[notebookId] !== undefined) return prev;
+      return {
+        notebookSaveCounts: { ...prev.notebookSaveCounts, [notebookId]: count },
+      };
+    }),
+
+  setNotebookSaveCount: (notebookId, count) =>
+    set((prev) => ({
+      notebookSaveCounts: { ...prev.notebookSaveCounts, [notebookId]: count },
+    })),
+
   reset: () =>
     set({
       likedNotebooks: new Set(),
@@ -305,5 +411,7 @@ export const useSocialStore = create<SocialState>()((set, get) => ({
       followingIds: new Set(),
       followersCount: {},
       followingCount: {},
+      savedNotebookIds: new Set(),
+      notebookSaveCounts: {},
     }),
 }));

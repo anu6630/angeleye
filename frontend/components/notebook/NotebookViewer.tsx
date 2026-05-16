@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Heart, MessageCircle, Info, X, Code2 } from 'lucide-react';
+import { PostReportMenu } from '@/components/social/PostReportMenu';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +20,7 @@ import { FollowButton } from '@/components/social/FollowButton';
 import { ForkChain } from '@/components/social/ForkChain';
 import { EngagementMetrics } from '@/components/social/EngagementMetrics';
 import { formatRelativeTime } from '@/lib/utils';
+import { useNotebookPresence } from '@/hooks/useNotebookPresence';
 
 // CSS injected into the iframe to hide ALL code source — outputs and markdown only.
 // Covers both JupyterLab (.jp-*) and classic nbconvert (.input, .prompt) class names.
@@ -64,6 +66,10 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
   const { isAuthenticated } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
+
+  const { onlineViewerCount } = useNotebookPresence(notebookId, {
+    enabled: !isLoading && !error,
+  });
 
   useEffect(() => {
     async function loadNotebook() {
@@ -225,21 +231,24 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
               Feed
             </Button>
           </Link>
-          {hasCompiledOutput && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full ml-auto gap-2 text-muted-foreground"
-              onClick={() => setShowSource((s) => !s)}
-              title={showSource ? 'Back to output view' : 'Show source & output'}
-            >
-              {showSource ? (
-                <><X className="h-4 w-4" /> Hide source</>
-              ) : (
-                <><Info className="h-4 w-4" /> View source</>
-              )}
-            </Button>
-          )}
+          <div className="ml-auto flex items-center gap-0.5">
+            <PostReportMenu postId={notebookId} className="h-8 w-8" />
+            {hasCompiledOutput && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full gap-2 text-muted-foreground"
+                onClick={() => setShowSource((s) => !s)}
+                title={showSource ? 'Back to output view' : 'Show source & output'}
+              >
+                {showSource ? (
+                  <><X className="h-4 w-4" /> Hide source</>
+                ) : (
+                  <><Info className="h-4 w-4" /> View source</>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -324,6 +333,7 @@ export function NotebookViewer({ notebookId }: NotebookViewerProps) {
               likes={notebook.like_count}
               comments={notebook.comment_count}
               views={notebook.view_count || 0}
+              viewingNow={onlineViewerCount}
               variant="full"
               showZeroState={true}
             />

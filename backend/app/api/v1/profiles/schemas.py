@@ -23,6 +23,7 @@ class ProfileResponse(BaseModel):
     email: str
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    banner_url: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -31,11 +32,15 @@ class ProfileResponse(BaseModel):
 
 class PublicProfileResponse(BaseModel):
     """Public profile response for viewing other users (AUTH-04, D-08)"""
+    user_id: int
     username: str
     avatar_url: Optional[str] = None
+    banner_url: Optional[str] = None
     bio: Optional[str] = None
-    published_notebook_count: int = 0  # PROF-03 (placeholder for Phase 1)
-    likes_received_count: int = 0  # PROF-04 (placeholder for Phase 1)
+    published_notebook_count: int = 0
+    likes_received_count: int = 0
+    saved_notebook_count: int = 0
+    group_count: int = 0
     created_at: datetime
 
     class Config:
@@ -45,6 +50,8 @@ class ProfileStatsResponse(BaseModel):
     """Profile statistics response (PROF-03, PROF-04)"""
     published_notebook_count: int = 0
     likes_received_count: int = 0
+    saved_notebook_count: int = 0
+    group_count: int = 0
 
 class NotebookListItem(BaseModel):
     """Notebook list item (PROF-06, placeholder for Phase 2)"""

@@ -72,6 +72,19 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: notebooksocial-backend
+    # DM WebSocket: browsers connect to /api/v1/ws/chat — proxies must allow Upgrade.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     environment:
       - DATABASE_URL=postgresql://notebooksocial:notebooksocial_password@postgres:5432/notebooksocial
       - REDIS_URL=redis://redis:6379/0
@@ -85,6 +98,7 @@ services:
       - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
       - MEILISEARCH_URL=http://meilisearch:7700
       - FRONTEND_URL=http://localhost:3000
+      - CHAT_ATTACHMENTS_BUCKET=chat-attachments
     ports:
       - "8000:8000"
     depends_on:
@@ -142,16 +156,20 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        # Browser on the host calls the API via the published backend port (8000:8000).
         NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
     container_name: notebooksocial-frontend
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - NEXT_PUBLIC_FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+      - HOSTNAME=0.0.0.0
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:

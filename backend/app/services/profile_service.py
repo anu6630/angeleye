@@ -3,6 +3,7 @@ from typing import Optional, List
 from app.models.user import User
 from app.models.profile import Profile
 from app.schemas.profile import ProfileUpdate
+from app.services.search_service import SearchService
 from sqlalchemy import func
 
 class ProfileService:
@@ -69,32 +70,40 @@ class ProfileService:
         self.db.refresh(user)
         self.db.refresh(profile)
 
+        SearchService(self.db).index_user(user)
+
         return user
 
     def get_published_notebook_count(self, user_id: int) -> int:
-        """Get count of published notebooks for user (PROF-03)
-
-        Note: For Phase 1, this returns 0 as notebooks don't exist yet.
-        This will be implemented in Phase 2 when notebooks are created.
-        """
-        # TODO: Implement in Phase 2 when notebooks table exists
-        # return self.db.query(Notebook).filter(
-        #     Notebook.user_id == user_id,
-        #     Notebook.is_published == True
-        # ).count()
-        return 0
+        """Get count of published notebooks for user (PROF-03)"""
+        from app.models.notebook import Notebook
+        return self.db.query(Notebook).filter(
+            Notebook.user_id == user_id,
+            Notebook.is_published == True,
+            Notebook.is_archived == False
+        ).count()
 
     def get_likes_received_count(self, user_id: int) -> int:
-        """Get count of likes received by user (PROF-04)
+        """Get count of likes received by user (PROF-04)"""
+        from app.models.like import Like
+        from app.models.notebook import Notebook
+        return self.db.query(Like).join(Notebook).filter(
+            Notebook.user_id == user_id
+        ).count()
 
-        Note: For Phase 1, this returns 0 as likes don't exist yet.
-        This will be implemented in Phase 2 when likes are created.
-        """
-        # TODO: Implement in Phase 2 when likes table exists
-        # return self.db.query(Like).join(Notebook).filter(
-        #     Notebook.user_id == user_id
-        # ).count()
-        return 0
+    def get_saved_notebook_count(self, user_id: int) -> int:
+        """Get count of notebooks saved by user"""
+        from app.models.notebook_save import NotebookSave
+        return self.db.query(NotebookSave).filter(
+            NotebookSave.user_id == user_id
+        ).count()
+
+    def get_group_count(self, user_id: int) -> int:
+        """Get count of groups user is a member of"""
+        from app.models.group import GroupMembership
+        return self.db.query(GroupMembership).filter(
+            GroupMembership.user_id == user_id
+        ).count()
 
     def list_user_notebooks(
         self,
@@ -102,22 +111,27 @@ class ProfileService:
         skip: int = 0,
         limit: int = 20
     ) -> List[dict]:
-        """List user's published notebooks (PROF-06)
-
-        Note: For Phase 1, this returns empty list as notebooks don't exist yet.
-        This will be implemented in Phase 2 when notebooks are created.
-        """
-        # TODO: Implement in Phase 2 when notebooks table exists
-        # notebooks = self.db.query(Notebook).filter(
-        #     Notebook.user_id == user_id,
-        #     Notebook.is_published == True
-        # ).order_by(Notebook.created_at.desc()).offset(skip).limit(limit).all()
-        # return [self._notebook_to_dict(n) for n in notebooks]
-        return []
+        """List user's published notebooks (PROF-06)"""
+        from app.models.notebook import Notebook
+        notebooks = self.db.query(Notebook).filter(
+            Notebook.user_id == user_id,
+            Notebook.is_published == True,
+            Notebook.is_archived == False
+        ).order_by(Notebook.created_at.desc()).offset(skip).limit(limit).all()
+        # Basic dict conversion for now
+        return [{
+            "id": n.id,
+            "title": n.title,
+            "created_at": n.created_at,
+            "like_count": 0, # Should be fetched if needed
+            "comment_count": 0
+        } for n in notebooks]
 
     def get_profile_stats(self, user_id: int) -> dict:
         """Get profile statistics (PROF-03, PROF-04, PROF-06)"""
         return {
             "published_notebook_count": self.get_published_notebook_count(user_id),
-            "likes_received_count": self.get_likes_received_count(user_id)
+            "likes_received_count": self.get_likes_received_count(user_id),
+            "saved_notebook_count": self.get_saved_notebook_count(user_id),
+            "group_count": self.get_group_count(user_id)
         }

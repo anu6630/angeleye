@@ -3,7 +3,13 @@ import { DM_Sans, Fraunces } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { AppNavigation } from "@/components/layout/AppNavigation";
+import { AuthenticatedMainShell } from "@/components/layout/AuthenticatedMainShell";
 import { PendingAuthActionHandler } from "@/components/auth/PendingAuthActionHandler";
+import { AuthSessionSync } from "@/components/auth/AuthSessionSync";
+import { ChatConnectionManager } from "@/components/chat/ChatConnectionManager";
+import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
+import { GlobalProgressBar } from "@/components/layout/GlobalProgressBar";
+import { FloatingChatManager } from "@/components/chat/FloatingChatManager";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -18,9 +24,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "IdeaLit - Share and Remix Python Notebooks",
+  title: "Pulze - Share and Remix Python Notebooks",
   description:
-    "IdeaLit is a social platform for Python notebooks. Create, share, and fork computational knowledge.",
+    "Pulze is a social platform for Python notebooks. Create, share, and fork computational knowledge.",
 };
 
 export default function RootLayout({
@@ -42,9 +48,14 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen font-sans">
+        <ServiceWorkerRegistrar />
+        <GlobalProgressBar />
         <AppNavigation />
+        <AuthSessionSync />
+        <ChatConnectionManager />
+        <FloatingChatManager />
         <PendingAuthActionHandler />
-        {children}
+        <AuthenticatedMainShell>{children}</AuthenticatedMainShell>
       </body>
     </html>
   );

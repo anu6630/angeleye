@@ -8,6 +8,8 @@ interface EngagementMetricsProps {
   likes: number;
   comments: number;
   views: number;
+  /** Live "viewing now" count; shown when > 0. */
+  viewingNow?: number | null;
   variant?: 'full' | 'compact';
   className?: string;
   showZeroState?: boolean;
@@ -18,12 +20,14 @@ export function EngagementMetrics({
   likes,
   comments,
   views,
+  viewingNow,
   variant = 'compact',
   className,
   showZeroState = false,
   hideLikes = false,
 }: EngagementMetricsProps) {
-  const totalEngagement = likes + comments + views;
+  const live = viewingNow ?? 0;
+  const totalEngagement = likes + comments + views + live;
 
   // Per CONTEXT.md D-32: Zero state logic (don't show "0", feels dead)
   if (!showZeroState && totalEngagement === 0) {
@@ -59,6 +63,19 @@ export function EngagementMetrics({
           <div className="flex items-center gap-1" title={`${views} views`}>
             <Eye className="h-4 w-4" />
             <span>{views}</span>
+            {live > 0 && (
+              <span className="ml-0.5 text-[0.7rem] font-medium tabular-nums text-emerald-600/90 dark:text-emerald-400/90">
+                · {live} now
+              </span>
+            )}
+          </div>
+        )}
+        {views === 0 && live > 0 && (
+          <div className="flex items-center gap-1" title={`${live} viewing now`}>
+            <Eye className="h-4 w-4" />
+            <span className="text-[0.7rem] font-medium tabular-nums text-emerald-600/90 dark:text-emerald-400/90">
+              {live} now
+            </span>
           </div>
         )}
       </div>
@@ -87,6 +104,17 @@ export function EngagementMetrics({
           <Eye className="h-4 w-4" />
           <span>{views}</span>
           <span className="text-xs">views</span>
+          {live > 0 && (
+            <span className="text-xs tabular-nums text-emerald-600/90 dark:text-emerald-400/90">
+              · {live} now
+            </span>
+          )}
+        </div>
+      )}
+      {views === 0 && live > 0 && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Eye className="h-4 w-4" />
+          <span className="tabular-nums text-emerald-600/90 dark:text-emerald-400/90">{live} now</span>
         </div>
       )}
     </div>
