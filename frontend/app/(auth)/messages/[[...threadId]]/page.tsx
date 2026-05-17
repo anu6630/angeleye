@@ -16,8 +16,6 @@ import {
   CheckCheck,
   Search,
   MoreVertical,
-  Phone,
-  Video,
   Info,
   Lock
 } from 'lucide-react';
@@ -353,12 +351,6 @@ export default function MessagesPage() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary transition-colors">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary transition-colors">
-                    <Video className="h-4 w-4" />
-                  </Button>
                   <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary transition-colors" asChild>
                     <Link href={`/profile/${encodeURIComponent(otherUser?.username || '')}`}>
                       <Info className="h-4 w-4" />
