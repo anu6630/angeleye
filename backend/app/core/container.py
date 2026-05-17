@@ -190,6 +190,12 @@ class ContainerExecutor:
             image=self.executor_image,
             image_pull_policy="IfNotPresent",
             command=["sh", "-c", cmd],
+            env=[
+                client.V1EnvVar(
+                    name="MPLCONFIGDIR",
+                    value="/tmp/notebooks/matplotlib_cache"
+                )
+            ],
             volume_mounts=[
                 client.V1VolumeMount(
                     name="compilation-volume",
