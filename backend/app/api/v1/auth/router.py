@@ -59,6 +59,8 @@ async def login_via_google(
     state = secrets.token_urlsafe(16)
     request.session['oauth_state'] = state
     redirect_uri = str(request.base_url) + "api/v1/auth/google/callback"
+    if "localhost" not in redirect_uri and redirect_uri.startswith("http://"):
+        redirect_uri = redirect_uri.replace("http://", "https://", 1)
 
     return await oauth.google.authorize_redirect(request, redirect_uri, state=state)
 
@@ -154,6 +156,8 @@ async def login_via_facebook(
     state = secrets.token_urlsafe(16)
     request.session['oauth_state'] = state
     redirect_uri = str(request.base_url) + "api/v1/auth/facebook/callback"
+    if "localhost" not in redirect_uri and redirect_uri.startswith("http://"):
+        redirect_uri = redirect_uri.replace("http://", "https://", 1)
 
     return await oauth.facebook.authorize_redirect(request, redirect_uri, state=state)
 
