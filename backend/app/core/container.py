@@ -188,6 +188,7 @@ class ContainerExecutor:
         container_spec = client.V1Container(
             name="compiler",
             image=self.executor_image,
+            image_pull_policy="IfNotPresent",
             command=["sh", "-c", cmd],
             volume_mounts=[
                 client.V1VolumeMount(
