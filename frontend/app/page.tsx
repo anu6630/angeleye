@@ -43,18 +43,16 @@ export default function Home() {
           <div className="space-y-8">
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
               <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-              Draft in the browser · Publish from the cloud
+              Effortless sharing · Meaningful connections
             </p>
 
             <div className="space-y-4">
               <h1 className="font-display text-4xl font-semibold tracking-tight text-foreground md:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
-                Evidence-based conversations.
-                <span className="block text-muted-foreground">Share insights, not rumors. Verified by data.</span>
+                Share your ideas, simply.
+                <span className="block text-muted-foreground">Authentic conversations with real context.</span>
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground leading-relaxed">
-                Pulze is a social network for evidence-based discussion. 
-                Create interactive posts backed by real data, 
-                ensuring every insight is transparent and reproducible.
+                Pulze is a refreshing space to connect. Easily share your thoughts, seamlessly attach context, and enjoy a feed where genuine ideas naturally shine through.
               </p>
             </div>
 
@@ -62,18 +60,18 @@ export default function Home() {
               {[
                 {
                   icon: Code2,
-                  title: 'Live Data',
-                  body: 'Explore and interact with live charts directly in your feed.',
+                  title: 'Interactive Feed',
+                  body: 'Engage with posts that come alive with beautiful, interactive context.',
                 },
                 {
                   icon: Layers,
-                  title: 'Verified Evidence',
-                  body: 'Every post is backed by reproducible datasets and code.',
+                  title: 'Authentic Sharing',
+                  body: 'Build a trustworthy space by simply sharing the story behind your thoughts.',
                 },
                 {
                   icon: GitFork,
-                  title: 'Remix Insights',
-                  body: 'Fork any post to add your own analysis and perspective.',
+                  title: 'Join the Flow',
+                  body: 'Easily build upon what others are sharing to add your unique voice.',
                 },
               ].map(({ icon: Icon, title, body }) => (
                 <div
