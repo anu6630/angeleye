@@ -33,6 +33,13 @@ def _cookie_secure() -> bool:
     """Mark auth cookies secure when frontend is served over HTTPS."""
     return settings.FRONTEND_URL.startswith("https://")
 
+
+def _cookie_domain() -> Optional[str]:
+    """Get cookie domain for cross-subdomain authentication."""
+    if "anuraj.net" in settings.FRONTEND_URL:
+        return ".anuraj.net"
+    return None
+
 # OAuth configuration (D-03, D-04)
 config = Config('.env')
 oauth = OAuth(config)
@@ -108,6 +115,7 @@ async def auth_google_callback(
                 samesite="lax",
                 max_age=1800,  # 30 minutes
                 path="/",
+                domain=_cookie_domain(),
             )
             redirect_response.set_cookie(
                 key="refresh_token",
@@ -117,6 +125,7 @@ async def auth_google_callback(
                 samesite="lax",
                 max_age=604800,  # 7 days
                 path="/",
+                domain=_cookie_domain(),
             )
 
             return redirect_response
@@ -141,6 +150,7 @@ async def auth_google_callback(
                 samesite="lax",
                 max_age=3600,  # 1 hour
                 path="/",
+                domain=_cookie_domain(),
             )
 
             return redirect_response
@@ -199,6 +209,7 @@ async def auth_facebook_callback(
                 samesite="lax",
                 max_age=1800,
                 path="/",
+                domain=_cookie_domain(),
             )
             redirect_response.set_cookie(
                 key="refresh_token",
@@ -208,6 +219,7 @@ async def auth_facebook_callback(
                 samesite="lax",
                 max_age=604800,
                 path="/",
+                domain=_cookie_domain(),
             )
 
             # Redirect to frontend home
@@ -232,6 +244,7 @@ async def auth_facebook_callback(
                 samesite="lax",
                 max_age=3600,
                 path="/",
+                domain=_cookie_domain(),
             )
 
             # Redirect to frontend profile wizard
@@ -283,7 +296,8 @@ async def complete_profile(
         secure=_cookie_secure(),
         samesite="lax",
         max_age=1800,
-        path="/"
+        path="/",
+        domain=_cookie_domain()
     )
     response.set_cookie(
         key="refresh_token",
@@ -292,11 +306,12 @@ async def complete_profile(
         secure=_cookie_secure(),
         samesite="lax",
         max_age=604800,
-        path="/"
+        path="/",
+        domain=_cookie_domain()
     )
 
     # Clear pending user cookie
-    response.delete_cookie("pending_user_id")
+    response.delete_cookie("pending_user_id", domain=_cookie_domain())
 
     return ProfileCompletionResponse(
         user_id=user.id,
@@ -342,8 +357,8 @@ async def get_current_user(
 @router.post('/logout')
 async def logout(response: Response):
     """Logout user by clearing cookies"""
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie("access_token", domain=_cookie_domain())
+    response.delete_cookie("refresh_token", domain=_cookie_domain())
     return {"success": True, "message": "Logged out successfully"}
 
 @router.post('/test-login', dependencies=[Depends(rate_limit_authorization())])
@@ -464,7 +479,8 @@ async def register(
         secure=_cookie_secure(),
         samesite="lax",
         max_age=1800,
-        path="/"
+        path="/",
+        domain=_cookie_domain()
     )
     response.set_cookie(
         key="refresh_token",
@@ -473,7 +489,8 @@ async def register(
         secure=_cookie_secure(),
         samesite="lax",
         max_age=604800,
-        path="/"
+        path="/",
+        domain=_cookie_domain()
     )
 
     return RegisterResponse(
@@ -516,7 +533,8 @@ async def login(
         secure=_cookie_secure(),
         samesite="lax",
         max_age=1800,
-        path="/"
+        path="/",
+        domain=_cookie_domain()
     )
     response.set_cookie(
         key="refresh_token",
@@ -525,7 +543,8 @@ async def login(
         secure=_cookie_secure(),
         samesite="lax",
         max_age=604800,
-        path="/"
+        path="/",
+        domain=_cookie_domain()
     )
 
     # Return JSON response instead of redirect for browser compatibility
