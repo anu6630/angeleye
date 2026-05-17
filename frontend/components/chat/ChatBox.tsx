@@ -51,7 +51,7 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
       }
       sendMessagesRead(conversationId);
     }
-  }, [messages.length, isMinimized, conversationId, sendMessagesRead]);
+  }, [messages.length, isMinimized, conversationId, sendMessagesRead, isTyping]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,13 +203,21 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
           );
         })}
         {isTyping && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-5 w-8 items-center justify-center rounded-full bg-muted">
-              <span className="flex gap-1">
-                <span className="h-1 w-1 animate-bounce rounded-full bg-foreground/50" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-foreground/50 [animation-delay:0.2s]" />
-                <span className="h-1 w-1 animate-bounce rounded-full bg-foreground/50 [animation-delay:0.4s]" />
-              </span>
+          <div className="flex items-end gap-2 max-w-[85%] animate-in fade-in duration-200">
+            <Avatar className="h-7 w-7 ring-1 ring-primary/10 shadow-sm flex-shrink-0">
+              <AvatarImage src={otherUser?.avatar_url || ''} />
+              <AvatarFallback className="bg-primary/5 text-primary font-bold text-[9px]">
+                {otherUser?.username.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-1">
+              <div className="flex h-6 w-10 items-center justify-center rounded-2xl bg-muted/80 backdrop-blur-sm rounded-tl-none border border-border/50">
+                <span className="flex gap-1">
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-primary/60 [animation-duration:1s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-primary/60 [animation-delay:0.2s] [animation-duration:1s]" />
+                  <span className="h-1 w-1 animate-bounce rounded-full bg-primary/60 [animation-delay:0.4s] [animation-duration:1s]" />
+                </span>
+              </div>
             </div>
           </div>
         )}
