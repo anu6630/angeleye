@@ -7,7 +7,7 @@ import { type FriendUserBrief } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { X, Minus, Maximize2, Send, Paperclip, Smile, Check, CheckCheck } from 'lucide-react';
+import { X, Minus, Maximize2, Send, Paperclip, Smile, Check, CheckCheck, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatBoxProps {
@@ -127,6 +127,17 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"
       >
+        {/* WhatsApp-style E2EE Notice */}
+        <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 dark:border-amber-500/20 text-[10px] text-amber-600/90 dark:text-amber-400/90 text-center gap-1 shadow-sm">
+          <div className="flex items-center gap-1 font-bold uppercase tracking-wider text-[9px]">
+            <Lock className="h-3 w-3 text-amber-500" />
+            End-to-End Encrypted
+          </div>
+          <p className="leading-normal max-w-[95%] font-medium">
+            Messages are end-to-end encrypted. No one outside of this chat, not even NotebookSocial, can read them.
+          </p>
+        </div>
+
         {messages.map((msg, idx) => {
           const isMe = msg.sender_id === me?.id;
           const showAvatar = idx === 0 || messages[idx-1].sender_id !== msg.sender_id;

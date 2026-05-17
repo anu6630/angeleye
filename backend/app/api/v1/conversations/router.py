@@ -94,6 +94,15 @@ class ReactionBody(BaseModel):
     emoji: str = Field(..., min_length=1, max_length=32)
 
 
+class RegisterPublicKeyBody(BaseModel):
+    public_key: str = Field(..., min_length=1)
+
+
+class PublicKeyResponse(BaseModel):
+    user_id: int
+    public_key: Optional[str] = None
+
+
 def _brief(u: User) -> FriendUserBrief:
     from app.services.avatar_service import build_avatar_url
     return FriendUserBrief(
@@ -295,3 +304,29 @@ async def remove_reaction(
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reaction not found")
     return {"ok": True}
+
+
+@router.post("/users/me/public-key", status_code=status.HTTP_200_OK)
+async def register_public_key(
+    body: RegisterPublicKeyBody,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(require_auth),
+):
+    user = db.query(User).filter(User.id == current_user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.public_key = body.public_key
+    db.commit()
+    return {"status": "success"}
+
+
+@router.get("/users/{user_id}/public-key", response_model=PublicKeyResponse)
+async def get_user_public_key(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(require_auth),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return PublicKeyResponse(user_id=user.id, public_key=user.public_key)

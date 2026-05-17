@@ -7,6 +7,12 @@ import {
 } from '@/lib/api-client';
 import { getChatWebSocketUrl } from '@/lib/ws-url';
 import { useAuthStore } from '@/stores/auth-store';
+import {
+  getOrGenerateMyKeys,
+  deriveSharedKey,
+  encryptMessage,
+  decryptMessage,
+} from '@/lib/crypto';
 
 export type PresenceScope = 'service_worker' | 'in_page_only';
 
@@ -45,10 +51,9 @@ interface ChatState {
     body: string,
     quotedMessageId?: number | null
   ) => Promise<void>;
-  handleWsData: (data: Record<string, unknown>) => void;
+  handleWsData: (data: Record<string, unknown>) => Promise<void> | void;
   
-  // Window management
-  openChatWindow: (conversationId: number, otherUser: FriendUserBrief) => void;
+  openChatWindow: (conversationId: number, otherUser: FriendUserBrief) => Promise<void>;
   minimizeChatWindow: (conversationId: number) => void;
   closeChatWindow: (conversationId: number) => void;
 }
@@ -56,6 +61,46 @@ interface ChatState {
 function wsSend(ws: WebSocket | null, payload: Record<string, unknown>) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(payload));
+  }
+}
+
+const sharedKeysCache: Record<number, CryptoKey> = {};
+
+async function getSharedKeyForConversation(conversationId: number): Promise<CryptoKey | null> {
+  const me = useAuthStore.getState().user;
+  if (!me) return null;
+
+  let otherUserId: number | undefined;
+  const storeState = useChatStore.getState();
+  const window = storeState.chatWindows.find(w => w.conversationId === conversationId);
+  if (window) {
+    otherUserId = window.otherUser.id;
+  } else {
+    const conv = storeState.conversations.find(c => c.conversation_id === conversationId);
+    if (conv) {
+      otherUserId = conv.other_user.id;
+    }
+  }
+
+  if (!otherUserId) return null;
+
+  if (sharedKeysCache[otherUserId]) {
+    return sharedKeysCache[otherUserId];
+  }
+
+  try {
+    const myKeyPairJwk = await getOrGenerateMyKeys(me.id);
+    const res = await apiClient.getUserPublicKey(otherUserId);
+    if (!res.public_key) {
+      return null;
+    }
+    const peerPublicKeyJwk = JSON.parse(res.public_key);
+    const sharedKey = await deriveSharedKey(myKeyPairJwk.privateKey, peerPublicKeyJwk);
+    sharedKeysCache[otherUserId] = sharedKey;
+    return sharedKey;
+  } catch (err) {
+    console.error('Failed to get/derive E2EE shared key for conversation:', conversationId, err);
+    return null;
   }
 }
 
@@ -76,6 +121,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { ws: existing } = get();
     if (existing && existing.readyState === WebSocket.OPEN) return;
     if (!useAuthStore.getState().isAuthenticated) return;
+
+    // Ensure our E2EE keys are generated and registered on the server on connect
+    const me = useAuthStore.getState().user;
+    if (me) {
+      getOrGenerateMyKeys(me.id).then(async (pair) => {
+        try {
+          await apiClient.registerPublicKey(JSON.stringify(pair.publicKey));
+        } catch (err) {
+          console.error("Failed to register E2EE public key:", err);
+        }
+      }).catch(err => {
+        console.error("E2EE key generation failed:", err);
+      });
+    }
 
     let url = getChatWebSocketUrl();
     try {
@@ -158,7 +217,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   fetchConversations: async () => {
     const rows = await apiClient.listConversations();
-    set({ conversations: rows });
+    const decryptedRows = await Promise.all(
+      rows.map(async (row) => {
+        if (row.last_message_preview && row.last_message_preview.startsWith('e2ee:v1:')) {
+          const sharedKey = await getSharedKeyForConversation(row.conversation_id);
+          if (sharedKey) {
+            const dec = await decryptMessage(row.last_message_preview, sharedKey);
+            return { ...row, last_message_preview: dec };
+          }
+        }
+        return row;
+      })
+    );
+    set({ conversations: decryptedRows });
   },
 
   fetchOnlineFriends: async () => {
@@ -169,9 +240,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
   openThread: async (conversationId) => {
     const page = await apiClient.getConversationMessages(conversationId, undefined, 50);
     const asc = [...page.messages].reverse();
+    const sharedKey = await getSharedKeyForConversation(conversationId);
+    const decryptedMessages = await Promise.all(
+      asc.map(async (m) => {
+        if (m.body && m.body.startsWith('e2ee:v1:') && sharedKey) {
+          const decryptedBody = await decryptMessage(m.body, sharedKey);
+          return { ...m, body: decryptedBody };
+        }
+        return m;
+      })
+    );
     set((s) => ({
       activeConversationId: conversationId,
-      messagesByConversation: { ...s.messagesByConversation, [conversationId]: asc },
+      messagesByConversation: { ...s.messagesByConversation, [conversationId]: decryptedMessages },
       messageCursors: { ...s.messageCursors, [conversationId]: page.next_cursor },
       // Close floating window if opening in main thread
       chatWindows: s.chatWindows.filter(w => w.conversationId !== conversationId)
@@ -185,12 +266,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (cur == null) return;
     const page = await apiClient.getConversationMessages(conversationId, cur, 40);
     const olderAsc = [...page.messages].reverse();
+    const sharedKey = await getSharedKeyForConversation(conversationId);
+    const decryptedOlder = await Promise.all(
+      olderAsc.map(async (m) => {
+        if (m.body && m.body.startsWith('e2ee:v1:') && sharedKey) {
+          const decryptedBody = await decryptMessage(m.body, sharedKey);
+          return { ...m, body: decryptedBody };
+        }
+        return m;
+      })
+    );
     set((s) => {
       const prev = s.messagesByConversation[conversationId] || [];
       return {
         messagesByConversation: {
           ...s.messagesByConversation,
-          [conversationId]: [...olderAsc, ...prev],
+          [conversationId]: [...decryptedOlder, ...prev],
         },
         messageCursors: { ...s.messageCursors, [conversationId]: page.next_cursor },
       };
@@ -222,21 +313,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }));
 
     try {
+      let bodyToSend = text;
+      const sharedKey = await getSharedKeyForConversation(conversationId);
+      if (sharedKey) {
+        bodyToSend = await encryptMessage(text, sharedKey);
+      }
+
       const saved = await apiClient.postConversationMessage(conversationId, {
-        body: text,
+        body: bodyToSend,
         quoted_message_id: quotedMessageId ?? null,
       });
+
+      let savedDecrypted = saved;
+      if (saved.body && saved.body.startsWith('e2ee:v1:') && sharedKey) {
+        const decryptedBody = await decryptMessage(saved.body, sharedKey);
+        savedDecrypted = { ...saved, body: decryptedBody };
+      }
+
       set((s) => {
         const list = s.messagesByConversation[conversationId] || [];
+        const filtered = list.filter((m) => m.id !== tempId);
+        // Avoid duplicate message in UI if WebSocket message already arrived and got appended
+        if (filtered.some((m) => m.id === savedDecrypted.id)) {
+          return {
+            messagesByConversation: {
+              ...s.messagesByConversation,
+              [conversationId]: filtered,
+            },
+          };
+        }
         return {
           messagesByConversation: {
             ...s.messagesByConversation,
-            [conversationId]: list.filter((m) => m.id !== tempId).concat(saved),
+            [conversationId]: filtered.concat(savedDecrypted),
           },
         };
       });
       await get().fetchConversations();
-    } catch {
+    } catch (err) {
+      console.error('Failed to send text message:', err);
       set((s) => {
         const list = s.messagesByConversation[conversationId] || [];
         return {
@@ -250,7 +365,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  handleWsData: (data) => {
+  handleWsData: async (data) => {
     const t = data.type as string;
     if (t === 'hello' || t === 'pong') return;
     
@@ -281,12 +396,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       
       // Update thread if open
       if (get().activeConversationId === cid || get().chatWindows.some(w => w.conversationId === cid)) {
-        // We have enough data now, but let's fetch to be safe or just use the payload
+        const sharedKey = await getSharedKeyForConversation(cid);
+        let bodyText = data.body as string;
+        if (bodyText && bodyText.startsWith('e2ee:v1:') && sharedKey) {
+          bodyText = await decryptMessage(bodyText, sharedKey);
+        }
+
         const newMsg: ChatMessage = {
           id: mid,
           conversation_id: cid,
           sender_id: sender_id,
-          body: data.body as string,
+          body: bodyText,
           attachment_filename: data.attachment_filename as string,
           created_at: data.created_at as string,
           reactions: [],
@@ -310,36 +430,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Auto-open chat box (Facebook style) - ONLY if not already in main thread
       if (sender_id !== me && get().activeConversationId !== cid) {
-        set(s => {
-          const exists = s.chatWindows.find(w => w.conversationId === cid);
-          if (exists) {
-            if (exists.isMinimized) {
-              return {
-                chatWindows: s.chatWindows.map(w => 
-                  w.conversationId === cid ? { ...w, unreadCount: w.unreadCount + 1 } : w
-                )
-              };
-            }
-            return s;
-          }
-          
-          // Use data from payload if possible
-          const otherUser: FriendUserBrief = {
-            id: sender_id,
-            username: data.sender_username as string,
-            avatar_url: data.sender_avatar as string
-          };
-
-          return {
-            chatWindows: [...s.chatWindows, { 
-              conversationId: cid, 
-              isMinimized: false, 
-              unreadCount: 0, 
-              otherUser: otherUser
-            }]
-          };
-        });
-        get().joinConversation(cid);
+        const otherUser: FriendUserBrief = {
+          id: sender_id,
+          username: data.sender_username as string,
+          avatar_url: data.sender_avatar as string
+        };
+        get().openChatWindow(cid, otherUser);
       } else if (sender_id !== me && get().activeConversationId === cid) {
         // If in main thread, still mark as read
         get().sendMessagesRead(cid);
@@ -377,7 +473,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  openChatWindow: (conversationId, otherUser) => {
+  openChatWindow: async (conversationId, otherUser) => {
     set(s => {
       const exists = s.chatWindows.find(w => w.conversationId === conversationId);
       if (exists) {
@@ -393,6 +489,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
     get().joinConversation(conversationId);
     get().sendMessagesRead(conversationId);
+
+    try {
+      const page = await apiClient.getConversationMessages(conversationId, undefined, 50);
+      const asc = [...page.messages].reverse();
+      const sharedKey = await getSharedKeyForConversation(conversationId);
+      const decryptedMessages = await Promise.all(
+        asc.map(async (m) => {
+          if (m.body && m.body.startsWith('e2ee:v1:') && sharedKey) {
+            const decryptedBody = await decryptMessage(m.body, sharedKey);
+            return { ...m, body: decryptedBody };
+          }
+          return m;
+        })
+      );
+      set(s => ({
+        messagesByConversation: {
+          ...s.messagesByConversation,
+          [conversationId]: decryptedMessages
+        },
+        messageCursors: {
+          ...s.messageCursors,
+          [conversationId]: page.next_cursor
+        }
+      }));
+    } catch (err) {
+      console.error("Failed to load messages for chat window:", err);
+    }
   },
 
   minimizeChatWindow: (conversationId) => {

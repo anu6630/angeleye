@@ -1118,6 +1118,17 @@ class ApiClient {
     const q = p.toString();
     return this.request<FeedResponse>(`/notebooks/users/${username}/public${q ? `?${q}` : ''}`);
   }
+
+  async registerPublicKey(publicKeyJwk: string): Promise<void> {
+    await this.request<unknown>('/users/me/public-key', {
+      method: 'POST',
+      body: JSON.stringify({ public_key: publicKeyJwk }),
+    });
+  }
+
+  async getUserPublicKey(userId: number): Promise<{ user_id: number; public_key: string | null }> {
+    return this.request<{ user_id: number; public_key: string | null }>(`/users/${userId}/public-key`);
+  }
 }
 
 export const apiClient = new ApiClient();

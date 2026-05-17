@@ -18,7 +18,8 @@ import {
   MoreVertical,
   Phone,
   Video,
-  Info
+  Info,
+  Lock
 } from 'lucide-react';
 import { apiClient, type ChatMessage, type ConversationListItem } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth-store';
@@ -380,7 +381,18 @@ export default function MessagesPage() {
                     </Button>
                   </div>
                 )}
-                
+
+                {/* WhatsApp-style E2EE Notice Banner */}
+                <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 dark:border-amber-500/20 text-xs text-amber-600/90 dark:text-amber-400/90 text-center gap-1.5 shadow-sm max-w-md mx-auto my-2 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                    <Lock className="h-3.5 w-3.5 text-amber-500" />
+                    End-to-End Encrypted
+                  </div>
+                  <p className="leading-relaxed max-w-[90%] font-medium text-[11px]">
+                    Messages are end-to-end encrypted. No one outside of this chat, not even NotebookSocial, can read them.
+                  </p>
+                </div>
+
                 {activeMessages.map((m, idx) => {
                   const mine = user?.id === m.sender_id;
                   const showDateHeader = idx === 0 || false; // Simplification for now

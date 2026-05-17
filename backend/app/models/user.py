@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Index, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -21,6 +21,9 @@ class User(Base):
 
     # Password authentication (nullable for OAuth-only users)
     password_hash = Column(String(255), nullable=True)
+
+    # E2EE Public Key registry
+    public_key = Column(Text, nullable=True)
 
     # Relationships
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
