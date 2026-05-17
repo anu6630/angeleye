@@ -25,14 +25,24 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
     openChatWindow, 
     closeChatWindow,
     sendMessagesRead,
-    typingUserIds
+    typingUserIds,
+    sendTypingStart,
+    sendTypingStop
   } = useChatStore();
   const me = useAuthStore((s) => s.user);
   const [inputValue, setInputValue] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const messages = messagesByConversation[conversationId] || [];
   const isTyping = typingUserIds[conversationId]?.size > 0;
+
+  const onInputChange = (val: string) => {
+    setInputValue(val);
+    sendTypingStart(conversationId);
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => sendTypingStop(conversationId), 450);
+  };
 
   useEffect(() => {
     if (!isMinimized) {
@@ -48,6 +58,8 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
     if (!inputValue.trim()) return;
     const val = inputValue;
     setInputValue('');
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    sendTypingStop(conversationId);
     await sendTextMessage(conversationId, val);
   };
 
@@ -99,7 +111,11 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
           </Avatar>
           <div className="flex flex-col">
             <span className="text-sm font-bold tracking-tight">{otherUser.username}</span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Online</span>
+            {isTyping ? (
+              <span className="text-[10px] text-primary font-bold uppercase tracking-wider animate-pulse">Typing...</span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Online</span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-0.5">
@@ -207,7 +223,7 @@ export function ChatBox({ conversationId, isMinimized, unreadCount, otherUser }:
           </Button>
           <Input 
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => onInputChange(e.target.value)}
             placeholder="Type a message..."
             className="h-9 rounded-full bg-background border-border/50 text-xs focus-visible:ring-primary/30"
           />

@@ -455,6 +455,27 @@ export default function MessagesPage() {
                     </div>
                   );
                 })}
+
+                {typingNames && (
+                  <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                    <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm">
+                      <AvatarImage src={otherUser?.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/5 text-primary font-bold text-[10px]">
+                        {otherUser?.username.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex h-7 w-12 items-center justify-center rounded-2xl bg-muted/80 backdrop-blur-sm rounded-tl-none border border-border/50">
+                        <span className="flex gap-1.5">
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-duration:1s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:0.2s] [animation-duration:1s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:0.4s] [animation-duration:1s]" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div ref={listEndRef} />
               </div>
 
