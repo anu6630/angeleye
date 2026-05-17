@@ -159,8 +159,16 @@ class ContainerExecutor:
                 f'ln -sf /tmp/notebooks/{namespaced} '
                 f'/tmp/notebooks/{safe_filename} && '
             )
+        
+        ipython_config_setup = (
+            'mkdir -p /tmp/notebooks/.ipython/profile_default && '
+            'echo "c = get_config()" > /tmp/notebooks/.ipython/profile_default/ipython_kernel_config.py && '
+            'echo "c.IPKernelApp.matplotlib = \'inline\'" >> /tmp/notebooks/.ipython/profile_default/ipython_kernel_config.py && '
+        )
+        
         cmd = (
             f'{symlink_cmds}'
+            f'{ipython_config_setup}'
             f'cd /tmp/notebooks && '
             f'jupyter nbconvert --to html --execute '
             f'--ExecutePreprocessor.timeout=280 '
@@ -191,6 +199,10 @@ class ContainerExecutor:
             image_pull_policy="IfNotPresent",
             command=["sh", "-c", cmd],
             env=[
+                client.V1EnvVar(
+                    name="HOME",
+                    value="/tmp/notebooks"
+                ),
                 client.V1EnvVar(
                     name="MPLCONFIGDIR",
                     value="/tmp/notebooks/matplotlib_cache"
