@@ -39,6 +39,9 @@ const IMPORT_TO_PACKAGE: Record<string, string> = {
   seaborn: 'seaborn',
   plotly: 'plotly',
   statsmodels: 'statsmodels',
+  altair: 'altair',
+  alt: 'altair',
+  vega_datasets: 'vega-datasets',
 };
 
 /**
@@ -111,6 +114,7 @@ export async function detectAndLoadPackages(code: string, pyodide: any): Promise
   } catch {
     // Some packages may require micropip (pure-Python wheels)
     try {
+      await pyodide.loadPackage('micropip');
       await pyodide.runPythonAsync(`
 import micropip
 await micropip.install(${JSON.stringify([...seen])})
