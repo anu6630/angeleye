@@ -37,3 +37,4 @@ meilisearch==0.31.5
 itsdangerous==2.1.2
 passlib==1.7.4
 email-validator==2.1.1
+kubernetes==31.0.0
