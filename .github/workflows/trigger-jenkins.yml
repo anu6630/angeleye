@@ -13,7 +13,7 @@ jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Jenkins build
+      - name: Trigger Jenkins buildWithParameters
         env:
           JENKINS_URL: ${{ secrets.JENKINS_URL }}
           JENKINS_USER: ${{ secrets.JENKINS_USER }}
@@ -34,9 +34,12 @@ jobs:
           CRUMB=$(echo "${CRUMB_JSON}" | jq -r '.crumb')
           CRUMB_FIELD=$(echo "${CRUMB_JSON}" | jq -r '.crumbRequestField')
 
-          # Job angeleye-deploy is not parameterized; checkout is always main in Jenkinsfile.
-          URL="${JENKINS_URL}/${JENKINS_JOB}/build"
+          URL="${JENKINS_URL}/${JENKINS_JOB}/buildWithParameters"
           curl -fsS -b "${COOKIE_JAR}" -u "${JENKINS_USER}:${JENKINS_TOKEN}" \
-            -H "${CRUMB_FIELD}: ${CRUMB}" -X POST "${URL}"
+            -H "${CRUMB_FIELD}: ${CRUMB}" -X POST \
+            --data-urlencode "GIT_REF=${GIT_REF}" \
+            --data-urlencode "GIT_SHA=${GIT_SHA}" \
+            --data-urlencode "GIT_REPO=${GIT_REPO}" \
+            "${URL}"
 
           echo "Triggered: ${URL} (ref=${GIT_REF} sha=${GIT_SHA} repo=${GIT_REPO})"
